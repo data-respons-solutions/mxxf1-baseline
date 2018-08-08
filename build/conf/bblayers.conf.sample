@@ -12,9 +12,9 @@ BBLAYERS ?= " \
   ##OEROOT##/../meta-openembedded/meta-python \
   ##OEROOT##/../meta-openembedded/meta-networking \
   ##OEROOT##/../meta-openembedded/meta-perl \
-  ##OEROOT##/../meta-cargotec \
-  ##OEROOT##/../meta-security/meta-tpm \
-  ##OEROOT##/../meta-security \
-  "
-
-BBMASK = "meta-security/meta-tpm/recipes-kernel/"
+  ##OEROOT##/../meta-mxxf1 \
+  ##OEROOT##/../meta-qt5 \
+  ##OEROOT##/../meta-freescale \
+  ##OEROOT##/../meta-dr-fsl \
+  ##OEROOT##/../meta-dr-system \
+"

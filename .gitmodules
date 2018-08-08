@@ -22,3 +22,7 @@
 	path = bitbake
 	url = git://git.openembedded.org/bitbake
 	branch = master
+[submodule "meta-dr-system"]
+	path = meta-dr-system
+	url = ssh://bitbucket.datarespons.com:7999/no_imx/meta-dr-system.git
+	branch = rocko

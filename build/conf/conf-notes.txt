@@ -1,14 +1,4 @@
 Image notes:
- * cargotec-image: what the final product ultimately should use
- * cargotec-dev-image: an image based on cargotec-image with some tweaks
-                   and extra packages in order to allow testing on
-                   the hardware
- * cargotec-super-dev-image: an image that contains an enormous amount of
-                   extra packages to facilitate development
-                    
-Relevant targets are:
-    cargotec-image
-    cargotec-dev-image
-    cargotec-super-dev-image
+
 
 You can also run generated qemu images with a command like 'runqemu qemux86'
