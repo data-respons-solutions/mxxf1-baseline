@@ -1,0 +1,31 @@
+
+
+
+How To Use
+==========
+
+External recipe sources are included in the project as git submodules.
+These modules need to be initialized on first use:
+
+# git submodule update --init
+
+OpenEmbedded (BitBake) relies on the build environment providing a large
+set of environment variables.  These are most easily set up by sourcing
+the provide 'env' script:
+
+# . ./env
+
+And now you can build:
+
+# bitbake <image>
+
+
+
+How This Differs From Original
+==============================
+
+- Use oe-core instead of poky.  Poky is actually just oe-core plus
+  two other kernel/bsp repos mashed together.  Since the Cargotec
+  project doesn't use anything from these other repos, Poky brings
+  nothing that oe-core doesn't already have.  Better to use oe-core
+  as that's the open source project whereas Poky is Intel's monster...
