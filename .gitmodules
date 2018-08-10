@@ -12,8 +12,8 @@
 	branch = master
 [submodule "meta-freescale"]
 	path = meta-freescale
-	url = git://git.yoctoproject.org/meta-freescale
-	branch = rocko
+	url = ssh://git@bitbucket.datarespons.com:7999/no_imx/meta-freescale.git
+	branch = rocko-dr
 [submodule "meta-qt5"]
 	path = meta-qt5
 	url = https://github.com/meta-qt5/meta-qt5.git
