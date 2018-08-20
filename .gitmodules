@@ -9,7 +9,7 @@
 [submodule "meta-dr-fsl"]
 	path = meta-dr-fsl
 	url = ssh://bitbucket.datarespons.com:7999/no_imx/meta-dr-fsl.git
-	branch = master
+	branch = rocko
 [submodule "meta-freescale"]
 	path = meta-freescale
 	url = ssh://git@bitbucket.datarespons.com:7999/no_imx/meta-freescale.git
