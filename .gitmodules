@@ -1,23 +1,23 @@
 [submodule "oe-core"]
 	path = oe-core
 	url = git://git.openembedded.org/openembedded-core
-	branch = rocko
+	branch = sumo
 [submodule "meta-openembedded"]
 	path = meta-openembedded
 	url = git://git.openembedded.org/meta-openembedded
-	branch = rocko
+	branch = sumo
 [submodule "meta-dr-fsl"]
 	path = meta-dr-fsl
 	url = ssh://bitbucket.datarespons.com:7999/no_imx/meta-dr-fsl.git
-	branch = rocko
+	branch = sumo
 [submodule "meta-freescale"]
 	path = meta-freescale
-	url = ssh://git@bitbucket.datarespons.com:7999/no_imx/meta-freescale.git
-	branch = rocko-dr
+	url = git://git.yoctoproject.org/meta-freescale
+	branch = sumo
 [submodule "meta-qt5"]
 	path = meta-qt5
 	url = https://github.com/meta-qt5/meta-qt5.git
-	branch = rocko
+	branch = sumo
 [submodule "bitbake"]
 	path = bitbake
 	url = git://git.openembedded.org/bitbake
@@ -25,4 +25,4 @@
 [submodule "meta-dr-system"]
 	path = meta-dr-system
 	url = ssh://bitbucket.datarespons.com:7999/no_imx/meta-dr-system.git
-	branch = rocko
+	branch = sumo
