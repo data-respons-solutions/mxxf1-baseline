@@ -6,7 +6,7 @@ die() {
 }
 
 if [ "$#" -lt "1" ]; then
-echo "Usage: $0 <topsrc>  [artifact] [sign_top]"
+echo "Usage: $0 <topsrc>  [artifact]"
 	exit 1
 fi
 
@@ -21,6 +21,3 @@ if [ "$#" -gt "1" ]; then
 	bitbake $2 || die "bitbake failed"
 fi
 
-if [ "$#" -eq "3" ]; then
-	fakeroot $3/linux64/bin/dr_signer.py --rfsout `basename $2`-signed ./tmp-glibc/deploy/images/cargotec-gw/$2-cargotec-gw.tar.bz2
-fi

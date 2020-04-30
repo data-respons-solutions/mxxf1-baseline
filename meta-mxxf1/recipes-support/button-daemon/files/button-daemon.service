@@ -1,0 +1,12 @@
+[Unit]
+Description=Button based brightness control
+After=network.target
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/default/button-daemon
+ExecStart=/usr/bin/buttonsdaemon $MIN_BACKLIGHT_LEVEL
+ExecStop=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

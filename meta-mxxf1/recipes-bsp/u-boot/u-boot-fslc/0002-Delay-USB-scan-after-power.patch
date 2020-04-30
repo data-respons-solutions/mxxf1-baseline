@@ -1,0 +1,42 @@
+From b99ce7f0ad46188758978b8c75891566a88b0ebe Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Tue, 26 Mar 2019 11:16:38 +0100
+Subject: [PATCH 2/6] Delay USB scan after power
+
+Allow time for devices to start up before scan.
+---
+ board/datarespons/mxxf1/mxxf1.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/board/datarespons/mxxf1/mxxf1.c b/board/datarespons/mxxf1/mxxf1.c
+index 606b707288..91d8ed02bf 100644
+--- a/board/datarespons/mxxf1/mxxf1.c
++++ b/board/datarespons/mxxf1/mxxf1.c
+@@ -695,6 +695,7 @@ int board_ehci_hcd_init(int port)
+ 
+ int board_ehci_power(int port, int on)
+ {
++
+ 	switch (port) {
+ 	case 0:
+ 		break;
+@@ -709,7 +710,7 @@ int board_ehci_power(int port, int on)
+ 			gpio_direction_output(GPIO_USBP2_EN, 1);
+ 			mdelay(1);
+ 			gpio_direction_output(GPIO_USBP3_EN, 1);
+-			mdelay(10);
++			mdelay(2000);
+ 		}
+ 		else {
+ 			gpio_direction_output(GPIO_USB_H1_EN, 0);
+@@ -877,6 +878,7 @@ int board_late_init(void)
+ 	else
+ 		vpd_update_eeprom(0);
+ 
++
+ 	cmd_process(0, 2, usbcmd, &rep, &ticks);
+ 	eeprom_get_mac_addr();
+ 
+-- 
+2.20.1
+

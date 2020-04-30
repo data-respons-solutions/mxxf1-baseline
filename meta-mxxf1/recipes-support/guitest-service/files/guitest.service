@@ -1,0 +1,9 @@
+[Unit]
+Description=GUI Tester
+After=display-manager.service
+
+[Service]
+ExecStart=/usr/bin/Qt5_CinematicExperience -display :0 --fullscreen
+
+[Install]
+WantedBy=multi-user.target

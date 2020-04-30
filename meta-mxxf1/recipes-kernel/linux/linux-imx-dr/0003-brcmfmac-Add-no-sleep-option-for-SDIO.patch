@@ -1,0 +1,40 @@
+From d1385f2421fbde0bbbc633025fac19ba31447c48 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Tue, 28 Apr 2020 09:31:51 +0200
+Subject: [PATCH 03/12] brcmfmac: Add no sleep option for SDIO
+
+A sleep on sdio may inadvertely kill Bluetooth operations
+---
+ drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c b/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c
+index f51723c77d38..950b2b6ccece 100644
+--- a/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c
++++ b/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c
+@@ -105,6 +105,11 @@ struct rte_console {
+ #include "debug.h"
+ #include "tracepoint.h"
+ 
++
++static int brcmf_sdiod_no_bus_sleep = 1;
++module_param_named(no_bus_sleep, brcmf_sdiod_no_bus_sleep, int, 0);
++MODULE_PARM_DESC(no_bus_sleep, "No bus sleep allowed [SDIO]");
++
+ #define TXQLEN		2048	/* bulk tx queue length */
+ #define TXHI		(TXQLEN - 256)	/* turn on flow control above TXHI */
+ #define TXLOW		(TXHI - 256)	/* turn off flow control below TXLOW */
+@@ -931,6 +936,10 @@ brcmf_sdio_bus_sleep(struct brcmf_sdio *bus, bool sleep, bool pendok)
+ {
+ 	int err = 0;
+ 	u8 clkcsr;
++	if (brcmf_sdiod_no_bus_sleep && sleep) {
++			brcmf_dbg(SDIO, "Sleep disabled\n");
++			return 0;
++	}
+ 
+ 	brcmf_dbg(SDIO, "Enter: request %s currently %s\n",
+ 		  (sleep ? "SLEEP" : "WAKE"),
+-- 
+2.20.1
+

@@ -1,0 +1,10 @@
+[Unit]
+Description=Memory Tester
+
+[Service]
+ExecStart=/usr/bin/memtester 100M 1000
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

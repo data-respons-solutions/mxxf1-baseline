@@ -1,0 +1,13 @@
+[Unit]
+Description=DR RRM10 production test GUI
+Requires=ppctest.service
+After=ppctest.service
+
+[Service]
+EnvironmentFile=/etc/default/qt5env
+ExecStart=/opt/rr/bin/rr 
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

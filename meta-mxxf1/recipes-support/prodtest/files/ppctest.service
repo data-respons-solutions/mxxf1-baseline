@@ -1,0 +1,12 @@
+[Unit]
+Description=DR RRM10 production test server
+After=network.target
+Requires=udisks.service
+After=udisks.service
+
+[Service]
+ExecStartPre=/usr/bin/timedatectl set-ntp false
+ExecStart=/usr/bin/ppctest
+
+[Install]
+WantedBy=multi-user.target
