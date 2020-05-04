@@ -15,5 +15,5 @@ PROVIDES = "virtual/kernel"
 
 COMPATIBLE_MACHINE = "(mxs|mx5|mx6|vf|use-mainline-bsp)"
 
-SRCREV ?= "2de05e600370bfb676c65b747e6ae4bc1e3d0db6"
+SRCREV ?= "c7c799224d558c6484fa76e00c680545909a98ca"
 LOCALVERSION = "-${BRANCH}"

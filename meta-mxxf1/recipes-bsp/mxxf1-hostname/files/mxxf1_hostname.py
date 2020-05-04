@@ -6,7 +6,7 @@ import subprocess, sys
 from subprocess import CalledProcessError
 
 try:
-  ident = subprocess.check_output(["/usr/bin/vpdget", "PRODUCT_SERIAL"])
+  ident = subprocess.check_output(["/usr/bin/vpdget", "PRODUCT_SERIAL"], universal_newlines=True)
 except CalledProcessError as e:
   print("Unable to get PRODUCT_SERIAL from nvram")
   exit(1)

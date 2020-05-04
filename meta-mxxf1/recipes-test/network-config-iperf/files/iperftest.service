@@ -1,0 +1,10 @@
+[Unit]
+Description=Start iperf server
+Requires=network.target
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/iperf3 -s
+
+[Install]
+WantedBy=multi-user.target

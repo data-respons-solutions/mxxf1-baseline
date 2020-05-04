@@ -19,7 +19,6 @@ RDEPENDS_${PN} = " \
     glibc-localedata-posix \
     localedef \
     iperf3 \
-    networkmanager \
 "
 pkg_postinst_ontarget_${PN} () {
 #!/bin/sh
