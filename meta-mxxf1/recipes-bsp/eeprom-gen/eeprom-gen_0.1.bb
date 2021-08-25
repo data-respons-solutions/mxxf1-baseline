@@ -6,7 +6,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 SRCREV ?= "${AUTOREV}"
-SRC_URI = "${DR_GIT_MIRROR}/oem-rrm10.git;protocol=ssh;branch=master"
+SRC_URI = "git://git@github.com/data-respons-solutions/oem-mxxf1-rrm10.git;protocol=ssh;branch=master"
 
 S = "${WORKDIR}/git/eeprom"
 

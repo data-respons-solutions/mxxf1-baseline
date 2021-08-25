@@ -1,10 +1,7 @@
 DESCRIPTION = "Data Respons RRM10  Qt5 image"
 
-IMAGE_FEATURES += "ssh-server-openssh package-management hwcodecs"
+IMAGE_FEATURES += "ssh-server-openssh package-management hwcodecs debug-tweaks"
 inherit core-image
-
-BAD_RECOMMENDATIONS += "busybox-syslog"
-NETWORK_MANAGER = "systemd"
 
 IMAGE_INSTALL = "\
     ${CORE_IMAGE_BASE_INSTALL} \
@@ -15,7 +12,7 @@ IMAGE_INSTALL = "\
     packagegroup-dr-extra \
     packagegroup-mxxf1 \
     networkmanager \
+    networkmanager-nmcli \
     networkmanager-bash-completion \
+    stressapptest \
 "
-
-

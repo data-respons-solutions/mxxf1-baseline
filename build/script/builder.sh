@@ -5,19 +5,12 @@ die() {
 	exit 1	
 }
 
-if [ "$#" -lt "1" ]; then
-echo "Usage: $0 <topsrc>  [artifact]"
-	exit 1
-fi
-
-top=$1
+SCRIPT=$(readlink -f $BASH_SOURCE)
+top=$(readlink -f $(dirname $SCRIPT)/../..)
+echo top at $top
 export TEMPLATECONF=$top/build/conf
+echo template at $TEMPLATECONF
 export DR_CM_COMMIT=`git -C $top describe --tags --long --dirty`
 export DR_BUILD_PLAN="manual"
 export BB_ENV_EXTRAWHITE="DR_BUILD_PLAN DR_BUILD_NO DR_CM_COMMIT"
-source $top/oe-core/oe-init-build-env build $top/bitbake
-if [ "$#" -gt "1" ]; then
-	echo "Starting build of $2 "
-	bitbake $2 || die "bitbake failed"
-fi
-
+source $top/poky/oe-init-build-env $1

@@ -19,7 +19,6 @@ RDEPENDS_${PN} = " \
     sysfsutils \
     mtd-utils \
     parted \
-    dhcp-client \
     fontconfig \
     fontconfig-utils \
     liberation-fonts \
