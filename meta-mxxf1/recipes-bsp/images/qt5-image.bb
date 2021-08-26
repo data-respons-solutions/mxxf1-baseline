@@ -15,4 +15,6 @@ IMAGE_INSTALL = "\
     networkmanager-nmcli \
     networkmanager-bash-completion \
     stressapptest \
+    flash-uboot \
+    eeprom-gen-generate \
 "

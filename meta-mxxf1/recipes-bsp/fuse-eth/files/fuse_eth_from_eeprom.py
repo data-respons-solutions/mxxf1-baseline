@@ -17,7 +17,7 @@ def checkMAC(s):
 # Program start
 
 try:
-  vpd_mac = subprocess.check_output(['/usr/bin/vpdget', 'FEC_MAC_ADDR'])
+  vpd_mac = subprocess.check_output(['/usr/bin/vpdget', 'FEC_MAC_ADDR'], text=True)
   vpd_mac = str.strip(vpd_mac, '\n')
   checkMAC(vpd_mac)
   print("FEC_MAC_ADDR", vpd_mac, "is valid")

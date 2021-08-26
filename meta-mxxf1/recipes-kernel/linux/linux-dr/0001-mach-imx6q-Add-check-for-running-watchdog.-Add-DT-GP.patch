@@ -1,7 +1,7 @@
-From e77c07c59641cd310a4adf5484606743bc4816a2 Mon Sep 17 00:00:00 2001
+From b62de5c37cdb41ed099b4fde513959eccc994ec4 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 12:46:58 +0200
-Subject: [PATCH 2/3] mach-imx6q: Add check for running watchdog. Add DT GPIO
+Subject: [PATCH 1/2] mach-imx6q: Add check for running watchdog. Add DT GPIO
  mapper
 
 The kernel can not know which wathcdog the bootloader started.
