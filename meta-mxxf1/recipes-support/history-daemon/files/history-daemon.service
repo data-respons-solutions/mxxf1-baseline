@@ -1,0 +1,11 @@
+[Unit]
+Description=User history
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/historydaemon
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

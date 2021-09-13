@@ -6,12 +6,10 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 SRCREV ?= "${AUTOREV}"
-SRC_URI = "git://git@github.com/data-respons-solutions/oem-mxxf1-rrm10.git;protocol=ssh;branch=master"
+SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 S = "${WORKDIR}/git/eeprom"
 
-PR = "r0"
-PV = "1.0.0+git${SRCPV}"
 
 EXTRA_OEMAKE = "'CXX=${CXX}' 'RANLIB=${RANLIB}' 'AR=${AR}' \
 'CXXFLAGS=${CXXFLAGS} -I${S}/include -DWITHOUT_XATTR' 'BUILDDIR=${S}'"

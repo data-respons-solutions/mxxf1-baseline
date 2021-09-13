@@ -27,7 +27,6 @@ IMAGE_INSTALL = "\
     memtester \
     lmbench \
     flash-uboot \
-    udisks-automounter \
     connman \
     connman-client \
 "

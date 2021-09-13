@@ -1,11 +1,11 @@
 DESCRIPTION = "Button backlight control for RRM10"
 SECTION = "base"
-HOMEPAGE = "http://www.datarespons.no"
+HOMEPAGE = "https://datarespons.com/solutions"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "569d837ae41b1d61e1abd1b45471d691288281de"
-SRC_URI = "git://git@github.com/data-respons-solutions/oem-mxxf1-rrm10.git;protocol=ssh;branch=master"
+SRCREV ?= "93c3311e415c83d44a0e1d3334b36c56ac51e39c"
+SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 SRC_URI += " \
     file://button-daemon.service \

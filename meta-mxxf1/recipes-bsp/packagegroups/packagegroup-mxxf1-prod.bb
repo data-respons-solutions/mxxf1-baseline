@@ -7,8 +7,9 @@ inherit packagegroup
 
 RDEPENDS_${PN} = " \
     eeprom-gen-generate \
-    prodtest \
+    ppctest-tools \
     flash-uboot \
     bzip2 \
     stressapptest \
+    mmc-utils \
 "
