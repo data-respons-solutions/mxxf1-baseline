@@ -9,7 +9,7 @@ SRC_URI = " \
 
 S = "${WORKDIR}"
 
-RDEPENDS_${PN} = "ppctest ppcgui eeprom-gen eeprom-gen-generate qt5-eglfs-mxxf1"
+RDEPENDS_${PN} = "ppctest ppctest-tools ppcgui eeprom-gen eeprom-gen-generate qt5-eglfs-mxxf1"
 
 do_install() {
 	install -d ${D}${systemd_unitdir}/system

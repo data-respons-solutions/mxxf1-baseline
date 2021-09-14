@@ -3,10 +3,8 @@
 DESCRIPTION = "Extra host SDK packs"
 LICENSE = "MIT"
 
-inherit nativesdk packagegroup
+inherit  packagegroup nativesdk
 
 
 RDEPENDS_${PN} += " \
-    nativesdk-rpm-build \
 "
-

@@ -4,7 +4,7 @@ HOMEPAGE = "http://www.datarespons.no"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "85c7b44fe3a85fad680618a9f7ad2fe144f24e31"
+SRCREV ?= "5869ea6e20c3b5967d05b1e036685dfc1cbf8e87"
 BRANCH ?= "master"
 SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=${BRANCH}"
 S = "${WORKDIR}/git/PpcGui"
