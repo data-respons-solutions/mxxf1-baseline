@@ -12,4 +12,5 @@ RDEPENDS_${PN} = " \
     stressapptest \
     mmc-utils \
     prodtest \
+    u-boot-fslc \
 "

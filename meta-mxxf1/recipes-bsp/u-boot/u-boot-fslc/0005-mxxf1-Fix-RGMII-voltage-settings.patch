@@ -1,7 +1,7 @@
-From 2661e64c8b1c62b4558c58514eb116262e7f5457 Mon Sep 17 00:00:00 2001
+From 50390d3acf4e8724d807dcb2507131acf2297b4f Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 29 Apr 2020 15:51:26 +0200
-Subject: [PATCH 6/6] mxxf1: Fix RGMII voltage settings
+Subject: [PATCH 5/6] mxxf1: Fix RGMII voltage settings
 
 Phy runs on 1.5V
 ---
@@ -9,7 +9,7 @@ Phy runs on 1.5V
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/board/datarespons/mxxf1/mxxf1.c b/board/datarespons/mxxf1/mxxf1.c
-index 91d8ed02bf..7e06da439e 100644
+index 8043e999dba..d3ddcacf56c 100644
 --- a/board/datarespons/mxxf1/mxxf1.c
 +++ b/board/datarespons/mxxf1/mxxf1.c
 @@ -10,6 +10,7 @@
@@ -20,7 +20,7 @@ index 91d8ed02bf..7e06da439e 100644
  #include <asm/mach-imx/sata.h>
  #include <errno.h>
  #include <asm/gpio.h>
-@@ -1124,8 +1125,10 @@ void board_init_f(ulong dummy)
+@@ -1130,8 +1131,10 @@ void board_init_f(ulong dummy)
  		udelay(10000);
  	}
  
@@ -33,5 +33,5 @@ index 91d8ed02bf..7e06da439e 100644
  	spl_dram_init();
  #ifdef DYNAMIC_CALIB
 -- 
-2.20.1
+2.25.1
 

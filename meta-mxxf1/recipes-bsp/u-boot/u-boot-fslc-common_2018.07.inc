@@ -13,6 +13,6 @@ SRCBRANCH = "2018.07+fslc"
 
 DEPENDS += "bison-native"
 
-PV = "v2018.07+git${SRCPV}"
+# PV = "v2018.07+git${SRCPV}"
 
 S = "${WORKDIR}/git"

@@ -1,7 +1,7 @@
-From 9ea1d1c5f0c7e63e8b6bd3e802192ccf4e30277a Mon Sep 17 00:00:00 2001
+From e55d25b6d818cd20f00cc3d9ce4b2a5ae639dc46 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 11:04:25 +0200
-Subject: [PATCH 2/2] Add mxxf1 DT files
+Subject: [PATCH 2/3] Add mxxf1 DT files
 
 ---
  arch/arm/boot/dts/mxxf1-common.dtsi | 832 ++++++++++++++++++++++++++++
@@ -852,7 +852,7 @@ index 000000000000..ed7d4cbdd779
 +};
 diff --git a/arch/arm/boot/dts/mxxf1-tsup.dts b/arch/arm/boot/dts/mxxf1-tsup.dts
 new file mode 100644
-index 000000000000..aca0bf3fdcab
+index 000000000000..22d26c5f448c
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-tsup.dts
 @@ -0,0 +1,49 @@
@@ -899,7 +899,7 @@ index 000000000000..aca0bf3fdcab
 +        };
 +
 +    adc7417@28 {
-+        compatible = "ad,ad7417";
++        compatible = "adi,ad7417";
 +        reg = <0x28>;
 +        };
 +};
@@ -907,7 +907,7 @@ index 000000000000..aca0bf3fdcab
 +
 diff --git a/arch/arm/boot/dts/mxxf1.dts b/arch/arm/boot/dts/mxxf1.dts
 new file mode 100644
-index 000000000000..21c102ad4e5a
+index 000000000000..27fef6d8d28c
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1.dts
 @@ -0,0 +1,48 @@
@@ -955,7 +955,7 @@ index 000000000000..21c102ad4e5a
 +        };
 +
 +    adc7417@28 {
-+        compatible = "ad,ad7417";
++        compatible = "adi,ad7417";
 +        reg = <0x28>;
 +        };
 +};
