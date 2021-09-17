@@ -1,23 +1,24 @@
-From e55d25b6d818cd20f00cc3d9ce4b2a5ae639dc46 Mon Sep 17 00:00:00 2001
+From 0c54b0fa581f03d8598fc161283d5e86303733f4 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 11:04:25 +0200
-Subject: [PATCH 2/3] Add mxxf1 DT files
+Subject: [PATCH 2/2] Add mxxf1 DT files
 
+Note that PCIE needs vph regulator
 ---
- arch/arm/boot/dts/mxxf1-common.dtsi | 832 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/mxxf1-common.dtsi | 833 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/mxxf1-tsup.dts    |  49 ++
  arch/arm/boot/dts/mxxf1.dts         |  48 ++
- 3 files changed, 929 insertions(+)
+ 3 files changed, 930 insertions(+)
  create mode 100644 arch/arm/boot/dts/mxxf1-common.dtsi
  create mode 100644 arch/arm/boot/dts/mxxf1-tsup.dts
  create mode 100644 arch/arm/boot/dts/mxxf1.dts
 
 diff --git a/arch/arm/boot/dts/mxxf1-common.dtsi b/arch/arm/boot/dts/mxxf1-common.dtsi
 new file mode 100644
-index 000000000000..ed7d4cbdd779
+index 000000000000..d0b27b933ed5
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-common.dtsi
-@@ -0,0 +1,832 @@
+@@ -0,0 +1,833 @@
 +/*
 + * Copyright DATA RESPONS AS
 + *
@@ -756,6 +757,7 @@ index 000000000000..ed7d4cbdd779
 +	pinctrl-0 = <&pinctrl_pcie>;
 +    reset-gpio = <&gpio7 12 GPIO_ACTIVE_LOW>;
 +    status = "okay";
++    vph-supply = <&vgen3_reg>;
 +};
 +
 +&uart1 {
