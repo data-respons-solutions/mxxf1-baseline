@@ -12,7 +12,6 @@ RDEPENDS_${PN} = " \
     lmsensors-sensord \
     usbutils \
     canutils \
-    fuse-eth \
     mxxf1-buzzer \
     bzip2 \
     glibc-localedata-i18n \
@@ -20,12 +19,5 @@ RDEPENDS_${PN} = " \
     localedef \
     iperf3 \
 "
-pkg_postinst_ontarget_${PN} () {
-#!/bin/sh
-if [ "x$D" != "x" ]; then
-    exit 1
-fi
-/usr/sbin/fuse_eth_from_eeprom.py
-}
 
 

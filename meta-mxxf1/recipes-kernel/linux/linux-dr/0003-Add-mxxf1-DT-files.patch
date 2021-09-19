@@ -1,24 +1,26 @@
-From 0c54b0fa581f03d8598fc161283d5e86303733f4 Mon Sep 17 00:00:00 2001
+From 98e3df9c7ebe172c5f53b0e13195f236ef6fa2f5 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 11:04:25 +0200
-Subject: [PATCH 2/2] Add mxxf1 DT files
+Subject: [PATCH 3/3] Add mxxf1 DT files
 
 Note that PCIE needs vph regulator
+Note: Buzzer path changed in this version to
+/sys/bus/platform/devices/pwm-buzzer
 ---
- arch/arm/boot/dts/mxxf1-common.dtsi | 833 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/mxxf1-common.dtsi | 837 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/mxxf1-tsup.dts    |  49 ++
  arch/arm/boot/dts/mxxf1.dts         |  48 ++
- 3 files changed, 930 insertions(+)
+ 3 files changed, 934 insertions(+)
  create mode 100644 arch/arm/boot/dts/mxxf1-common.dtsi
  create mode 100644 arch/arm/boot/dts/mxxf1-tsup.dts
  create mode 100644 arch/arm/boot/dts/mxxf1.dts
 
 diff --git a/arch/arm/boot/dts/mxxf1-common.dtsi b/arch/arm/boot/dts/mxxf1-common.dtsi
 new file mode 100644
-index 000000000000..d0b27b933ed5
+index 000000000000..f923c4dd18ed
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-common.dtsi
-@@ -0,0 +1,833 @@
+@@ -0,0 +1,837 @@
 +/*
 + * Copyright DATA RESPONS AS
 + *
@@ -272,7 +274,7 @@ index 000000000000..d0b27b933ed5
 +
 +	};
 +
-+	pwm-buzzer@0 {
++	pwm-buzzer {
 +        compatible = "pwm-buzzer";
 +        pwms = <&pwm3 0 434782>;
 +        status = "okay";
@@ -851,6 +853,10 @@ index 000000000000..d0b27b933ed5
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_pwm1>;
 +	status = "okay";
++};
++
++&ocotp {
++    status = "okay";
 +};
 diff --git a/arch/arm/boot/dts/mxxf1-tsup.dts b/arch/arm/boot/dts/mxxf1-tsup.dts
 new file mode 100644

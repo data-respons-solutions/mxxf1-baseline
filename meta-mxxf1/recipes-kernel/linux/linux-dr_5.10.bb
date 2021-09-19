@@ -24,8 +24,8 @@ SRC_URI = "${KERNEL_SRC};branch=${SRCBRANCH}"
 SRC_URI_append = " \
 	file://kernelconf \
     file://0001-mach-imx6q-Add-check-for-running-watchdog.-Add-DT-GP.patch \
-    file://0002-Add-mxxf1-DT-files.patch \
-    file://0003-Revert-flawed-PCIe-driver-from-NXP.patch \
+    file://0002-Add-pwm-utilities-for-mxxf1.patch \
+    file://0003-Add-mxxf1-DT-files.patch \
 "
 
 SRCREV = "ef3f2cfc6010c13feb40cfb7fd7490832cf86f45"
