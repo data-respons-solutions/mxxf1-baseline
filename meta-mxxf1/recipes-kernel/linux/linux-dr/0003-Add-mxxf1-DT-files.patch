@@ -1,4 +1,4 @@
-From 98e3df9c7ebe172c5f53b0e13195f236ef6fa2f5 Mon Sep 17 00:00:00 2001
+From 6f20779296ab09f900ba8c00ad8173ff79dca788 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 11:04:25 +0200
 Subject: [PATCH 3/3] Add mxxf1 DT files
@@ -7,20 +7,20 @@ Note that PCIE needs vph regulator
 Note: Buzzer path changed in this version to
 /sys/bus/platform/devices/pwm-buzzer
 ---
- arch/arm/boot/dts/mxxf1-common.dtsi | 837 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/mxxf1-common.dtsi | 841 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/mxxf1-tsup.dts    |  49 ++
  arch/arm/boot/dts/mxxf1.dts         |  48 ++
- 3 files changed, 934 insertions(+)
+ 3 files changed, 938 insertions(+)
  create mode 100644 arch/arm/boot/dts/mxxf1-common.dtsi
  create mode 100644 arch/arm/boot/dts/mxxf1-tsup.dts
  create mode 100644 arch/arm/boot/dts/mxxf1.dts
 
 diff --git a/arch/arm/boot/dts/mxxf1-common.dtsi b/arch/arm/boot/dts/mxxf1-common.dtsi
 new file mode 100644
-index 000000000000..f923c4dd18ed
+index 000000000000..4b6ff3eb99a9
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-common.dtsi
-@@ -0,0 +1,837 @@
+@@ -0,0 +1,841 @@
 +/*
 + * Copyright DATA RESPONS AS
 + *
@@ -856,6 +856,10 @@ index 000000000000..f923c4dd18ed
 +};
 +
 +&ocotp {
++    status = "okay";
++};
++
++&tempmon {
 +    status = "okay";
 +};
 diff --git a/arch/arm/boot/dts/mxxf1-tsup.dts b/arch/arm/boot/dts/mxxf1-tsup.dts

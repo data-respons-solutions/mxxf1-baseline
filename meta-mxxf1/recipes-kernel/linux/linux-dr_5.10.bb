@@ -31,7 +31,7 @@ SRC_URI_append = " \
 SRCREV = "ef3f2cfc6010c13feb40cfb7fd7490832cf86f45"
 
 LINUX_VERSION = "5.10.35"
-PL = "0.1"
+PL = "0.2"
 KBUILD_DEFCONFIG = "kernelconf"
 
 FILES_${KERNEL_PACKAGE_NAME}-base += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/modules.builtin.modinfo "
