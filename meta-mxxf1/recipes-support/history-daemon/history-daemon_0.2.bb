@@ -5,14 +5,13 @@ LICENSE = "BSD"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/LICENSE;md5=4d92cd373abda3937c2bc47fbc49d690"
 
-SRCREV ?= "7ba0d35091495a9630ed864ffabbf66c8bb80aa2"
-SRC_URI = "git://github.com/data-respons-solutions/oem-mxxf1-rrm10.git;protocol=ssh;branch=master"
+SRCREV ?= "0e65d9837020d0e1542fc4cd41b7cffc6657285a"
+SRC_URI = "git://github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 SRC_URI += "file://history-daemon.service"
 
 S = "${WORKDIR}/git/HistoryDeamon"
 
-PV = "1.0.0+git${SRCPV}"
 
 inherit systemd
 

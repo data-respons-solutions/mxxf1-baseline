@@ -4,7 +4,7 @@ HOMEPAGE = "https://datarespons.com/solutions"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "93c3311e415c83d44a0e1d3334b36c56ac51e39c"
+SRCREV ?= "0e65d9837020d0e1542fc4cd41b7cffc6657285a"
 SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 SRC_URI += " \
@@ -13,9 +13,6 @@ SRC_URI += " \
 "
 
 S = "${WORKDIR}/git/ButtonsDeamon"
-
-PR = "r0"
-PV = "0.1"
 
 inherit systemd
 
