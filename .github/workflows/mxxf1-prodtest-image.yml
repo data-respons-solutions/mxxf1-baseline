@@ -1,0 +1,108 @@
+name: Production Image
+
+on:
+  push: 
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      buildtype:
+        description: 'Build type'
+        default: 'staging'
+        required: true
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  CREDS: ${{ secrets.GCP_BUILD_JSON }}
+  GCP_PROJECT: solutions-generic
+  IMAGE_NAME: 'dr-prodtest'
+  WORKDIR: ${{github.workspace}}/workdir
+  SRCDIR: ${{github.workspace}}/src
+  DISTRO: dr-distro
+
+jobs:
+  build:
+    runs-on: [ hardknott, gcloud ]
+
+    steps:
+
+    - name: ProvideKey
+      run: |
+        mkdir -p $HOME/.ssh
+        chmod 0700 $HOME/.ssh
+        echo "${{ secrets.ID_DR_BUILD }}" > $HOME/.ssh/id_rsa
+        chmod 0600 $HOME/.ssh/id_rsa
+        echo "Host github.com" > $HOME/.ssh/config
+        echo "IdentityFile ~/.ssh/id_rsa" >> $HOME/.ssh/config
+        echo " StrictHostKeyChecking no" >> $HOME/.ssh/config
+
+    - name: GitCheckout
+      run: |
+        echo "Checkout on ${GITHUB_REF#refs/heads/}"
+        [ -d src/.git ] && git -C src fetch
+        [ -d src/.git ] || (rm -rf src; git clone --branch ${GITHUB_REF#refs/heads/} --recurse-submodules git@github.com:${{github.repository}} src)
+        git -C src reset --hard origin/${GITHUB_REF#refs/heads/}
+        git -C src submodule update
+
+    - name: DispatchEvent
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        echo "Build type is ${{github.event.inputs.buildtype}}"
+        echo "BUILD_TYPE=${{github.event.inputs.buildtype}}" >> $GITHUB_ENV
+
+    - name: GitEventRelease
+      if: github.event_name != 'workflow_dispatch' && ${{ startsWith(github.event.head_commit.message, 'Release') }}
+      run: |
+        echo "Build type is release"
+        echo "BUILD_TYPE=release" >> $GITHUB_ENV
+
+    - name: GitEventStaging
+      if: github.event_name != 'workflow_dispatch' && ${{ !startsWith(github.event.head_commit.message, 'Release') }}
+      run: |
+        echo "Build type is staging"
+        echo "BUILD_TYPE=staging" >> $GITHUB_ENV
+
+    - name: Prep
+      run: |
+        rm -rf $WORKDIR/build/conf
+        mkdir -p $WORKDIR
+
+    - name: oebuild
+      shell: bash
+      working-directory: ${{env.WORKDIR}}
+      env:
+        SSTATE_DIR: '${{github.workspace}}/workdir/sstate-cache'
+        DL_DIR: '${{github.workspace}}/workdir/downloads'
+      run: |
+        export TEMPLATECONF=$SRCDIR/build/conf
+        export DR_CM_COMMIT=`git -C $SRCDIR describe --tags --long --dirty --always`
+        export BB_ENV_EXTRAWHITE="DL_DIR  DR_CM_COMMIT GOOGLE_APPLICATION_CREDENTIALS"
+        export DISTRO=dr-distro
+        export MACHINE=dr-imx6-mc
+        . $SRCDIR/poky/oe-init-build-env build
+        echo "Now at $PWD starting build"
+        bitbake $IMAGE_NAME
+
+    - name: Credentials
+      run: |
+        TF=`mktemp XXXXX.json`
+        echo "$CREDS" > $TF
+        chmod 0600 $TF
+        echo "GOOGLE_APPLICATION_CREDENTIALS=$TF" >> $GITHUB_ENV
+        gcloud auth activate-service-account --project "$GCP_PROJECT" --key-file $TF
+    
+    - name: deployStaging
+      shell: bash
+      working-directory: ${{env.WORKDIR}}
+      run: |
+        IMAGE=`find . -name $IMAGE_NAME-dr-imx6-mc.tar.bz2`
+        echo "Upload $IMAGE to GCP mxxf1-$BUILD_TYPE bucket"
+        gsutil cp $IMAGE gs://mxxf1-$BUILD_TYPE
+
+    - name: Clean up
+      if: always()
+      run: |
+        echo "Remove local cached creds"
+        rm -f $GOOGLE_APPLICATION_CREDENTIALS
+        [ -f $HOME/.ssh/id_rsa.backup ] && cp $HOME/.ssh/id_rsa.backup $HOME/.ssh/id_rsa
+        rm -f $HOME/.ssh/config
