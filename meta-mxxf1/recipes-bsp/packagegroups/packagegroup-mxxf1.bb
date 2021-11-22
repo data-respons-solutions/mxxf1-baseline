@@ -18,6 +18,7 @@ RDEPENDS_${PN} = " \
     glibc-localedata-posix \
     localedef \
     iperf3 \
+    udisks2 \
 "
 
 
