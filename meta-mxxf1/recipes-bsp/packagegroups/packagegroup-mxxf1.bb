@@ -5,7 +5,7 @@ LICENSE = "MIT"
 
 inherit packagegroup
 
-RDEPENDS_${PN} = " \
+RDEPENDS:${PN} = " \
     eeprom-gen \
     libsysfs \
     button-daemon \
@@ -19,6 +19,9 @@ RDEPENDS_${PN} = " \
     localedef \
     iperf3 \
     udisks2 \
+    pciutils \
+    i2c-tools \
+    phytool \
 "
 
 

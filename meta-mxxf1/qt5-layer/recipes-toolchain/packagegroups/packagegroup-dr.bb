@@ -7,7 +7,7 @@ inherit packagegroup
 
 
 
-RDEPENDS_${PN} += " \
+RDEPENDS:${PN} += " \
     lmsensors-libsensors-dev \
     protobuf-dev \
     util-linux-dev \

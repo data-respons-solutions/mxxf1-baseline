@@ -5,7 +5,7 @@ LICENSE = "MIT"
 
 inherit packagegroup
 
-RDEPENDS_${PN} = " \
+RDEPENDS:${PN} = " \
     eeprom-gen-generate \
     flash-uboot \
     bzip2 \

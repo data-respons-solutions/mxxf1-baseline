@@ -29,11 +29,11 @@ do_install () {
 	install -m 0644 ${WORKDIR}/history-daemon.service ${D}${systemd_unitdir}/system/
 }
 
-FILES_${PN} = "\
+FILES:${PN} = "\
     /usr/bin/* \
 "
 
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "history-daemon.service"
+SYSTEMD_SERVICE:${PN} = "history-daemon.service"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

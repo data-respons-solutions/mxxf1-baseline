@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI  += " \
 	file://0001-Add-target-to-generate-initial-environment.patch \
@@ -13,11 +13,11 @@ SRC_URI  += " \
 EXTRA_OEMAKE += 'V=0'
 LOCALVERSION = "+dr-1.4"
 
-PV_append = "${LOCALVERSION}"
+PV:append = "${LOCALVERSION}"
 
-do_install_append () {
+do_install:append () {
 	install -d ${D}/boot
 	install -m 0644 ${WORKDIR}/boot.txt ${D}/boot
 }
 
-FILES_${PN}_append = " /boot"
+FILES:${PN}:append = " /boot"

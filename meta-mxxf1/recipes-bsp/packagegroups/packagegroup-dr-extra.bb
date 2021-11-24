@@ -5,7 +5,7 @@ LICENSE = "MIT"
 
 inherit packagegroup
 
-RDEPENDS_${PN} = " \
+RDEPENDS:${PN} = " \
     dosfstools \
     rsync \
     avahi-daemon \

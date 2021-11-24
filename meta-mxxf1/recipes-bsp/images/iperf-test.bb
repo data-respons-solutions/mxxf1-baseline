@@ -5,7 +5,7 @@ inherit core-image
 
 NETWORK_MANAGER = "systemd"
 
-ROOTFS_POSTPROCESS_COMMAND_append = " uboot_mod;"
+ROOTFS_POSTPROCESS_COMMAND:append = " uboot_mod;"
 
 IMAGE_INSTALL = "\
     ${CORE_IMAGE_BASE_INSTALL} \

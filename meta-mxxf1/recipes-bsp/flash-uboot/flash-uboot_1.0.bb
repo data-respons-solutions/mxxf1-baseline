@@ -10,7 +10,7 @@ SRC_URI = 	"file://flash-uboot.py \
 		 "
 PR = "r0"
 
-RDEPENDS_${PN} = "python3"
+RDEPENDS:${PN} = "python3"
 
 S = "${WORKDIR}"
 

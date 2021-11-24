@@ -10,9 +10,6 @@
 	path = meta-qt5
 	url = https://github.com/meta-qt5/meta-qt5.git
 
-[submodule "meta-imx"]
-	path = meta-imx
-	url = https://source.codeaurora.org/external/imx/meta-imx
 [submodule "meta-freescale-distro"]
 	path = meta-freescale-distro
 	url = https://github.com/Freescale/meta-freescale-distro

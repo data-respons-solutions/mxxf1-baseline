@@ -31,6 +31,6 @@ do_install () {
 }
 
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "button-daemon.service"
+SYSTEMD_SERVICE:${PN} = "button-daemon.service"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

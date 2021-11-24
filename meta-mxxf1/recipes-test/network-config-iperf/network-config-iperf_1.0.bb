@@ -13,7 +13,7 @@ S = "${WORKDIR}"
 
 inherit systemd
 
-RDEPENDS_${PN} = "iperf3"
+RDEPENDS:${PN} = "iperf3"
 
 do_install() {
 	install -d ${D}${sysconfdir}/systemd/network
@@ -24,4 +24,4 @@ do_install() {
 }
 SYSTEMD_PACKAGES = "${PN}"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
-SYSTEMD_SERVICE_${PN} = "iperftest.service"
+SYSTEMD_SERVICE:${PN} = "iperftest.service"

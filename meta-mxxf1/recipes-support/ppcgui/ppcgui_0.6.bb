@@ -12,7 +12,7 @@ S = "${WORKDIR}/git/PpcGui"
 require recipes-qt/qt5/qt5.inc
 
 DEPENDS = "qtdeclarative"
-RDEPENDS_${PN} = "qtdeclarative-qmlplugins qtgraphicaleffects-qmlplugins"
+RDEPENDS:${PN} = "qtdeclarative-qmlplugins qtgraphicaleffects-qmlplugins"
 
 do_configure() {
 	${OE_QMAKE_QMAKE} ${S}/rr.pro
@@ -22,15 +22,15 @@ do_install() {
 	oe_runmake INSTALL_ROOT=${D} install
 }
 
-FILES_${PN} = "\
+FILES:${PN} = "\
 	/opt/rr/bin/rr \
 	/opt/rr/qml* \
 	"
 
-FILES_${PN}-dbg = "\
+FILES:${PN}-dbg = "\
 	/opt/rr/bin/.debug \
 	"
-FILES_${PN}-dev = "\
+FILES:${PN}-dev = "\
 	/usr/src/debug \
 	"
 	

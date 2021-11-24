@@ -13,7 +13,7 @@ S = "${WORKDIR}"
 
 PR = "r0"
 
-RDEPENDS_${PN} = "python3 eeprom-gen"
+RDEPENDS:${PN} = "python3 eeprom-gen"
 
 do_install () {
 	install -d ${D}${sbindir}
@@ -21,6 +21,6 @@ do_install () {
 }
 
 
-FILES_${PN} = "${sbindir}/fuse_eth_from_eeprom.py"
+FILES:${PN} = "${sbindir}/fuse_eth_from_eeprom.py"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

@@ -10,7 +10,7 @@ SRC_URI = " \
 
 S = "${WORKDIR}"
 
-RDEPENDS_${PN} = "mxxf1-installer qt5-eglfs-mxxf1"
+RDEPENDS:${PN} = "mxxf1-installer qt5-eglfs-mxxf1"
 
 do_install() {
 	install -d ${D}${systemd_unitdir}/system
@@ -22,4 +22,4 @@ inherit allarch systemd
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "mxxf1-installer.service"
+SYSTEMD_SERVICE:${PN} = "mxxf1-installer.service"

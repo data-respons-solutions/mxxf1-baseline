@@ -14,7 +14,7 @@ inherit useradd
 
 USERADD_PACKAGES = "${PN}"
 
-USERADD_PARAM_${PN} += "--create-home --shell /bin/bash --groups sudo,tty,video,audio,input --system dr"
+USERADD_PARAM:${PN} += "--create-home --shell /bin/bash --groups sudo,tty,video,audio,input --system dr"
 
 do_install () {
     install -d -m 700 ${D}/home/dr/.ssh
@@ -24,8 +24,8 @@ do_install () {
     chgrp -R dr ${D}/home/dr
 }
 
-FILES_${PN} = "/home/dr/.ssh/authorized_keys"
+FILES:${PN} = "/home/dr/.ssh/authorized_keys"
 # Prevents do_package failures with:
 # debugsources.list: No such file or directory:
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
-# ALLOW_EMPTY_${PN} = "1"
+# ALLOW_EMPTY:${PN} = "1"

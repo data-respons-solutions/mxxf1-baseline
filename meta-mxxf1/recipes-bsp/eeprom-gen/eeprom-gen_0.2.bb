@@ -22,8 +22,8 @@ do_install () {
 
 PACKAGES =+ "${PN}-generate"
 
-FILES_${PN} = "${bindir}/vpdget"
-FILES_${PN}-generate = "${bindir}/vpdgenerate"
+FILES:${PN} = "${bindir}/vpdget"
+FILES:${PN}-generate = "${bindir}/vpdgenerate"
 
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

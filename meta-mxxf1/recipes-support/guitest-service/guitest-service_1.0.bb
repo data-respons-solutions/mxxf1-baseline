@@ -10,7 +10,7 @@ SRC_URI = " \
 
 S = "${WORKDIR}"
 
-RDEPENDS_${PN} = "cinematicexperience"
+RDEPENDS:${PN} = "cinematicexperience"
 
 do_install() {
 	install -d ${D}${systemd_unitdir}/system
@@ -21,4 +21,4 @@ inherit allarch  systemd
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "guitest.service"
+SYSTEMD_SERVICE:${PN} = "guitest.service"

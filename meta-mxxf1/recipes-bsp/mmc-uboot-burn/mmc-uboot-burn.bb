@@ -5,9 +5,9 @@ AUTHOR = "Hans Christian Lonstad <hcl@datarespons.no>"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/LICENSE;md5=4d92cd373abda3937c2bc47fbc49d690"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-RDEPENDS_${PN} = "mtd-utils"
+RDEPENDS:${PN} = "mtd-utils"
 
 SRC_URI += "file://mmc-uboot.sh"
 

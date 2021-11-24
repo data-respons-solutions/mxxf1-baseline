@@ -17,7 +17,7 @@ PV = "1.0.0+git${SRCPV}"
 require recipes-qt/qt5/qt5.inc
 
 DEPENDS = "qtdeclarative"
-RDEPENDS_${PN} = "parted qtdeclarative-qmlplugins qtgraphicaleffects-qmlplugins flash-uboot"
+RDEPENDS:${PN} = "parted qtdeclarative-qmlplugins qtgraphicaleffects-qmlplugins flash-uboot"
 
 
 #inherit qt4x11 pkgconfig
@@ -31,14 +31,14 @@ do_install() {
     oe_runmake INSTALL_ROOT=${D} install
 }
 
-FILES_${PN} = "\
+FILES:${PN} = "\
     /opt/Installer/* \
     "
 
-FILES_${PN}-dbg = "\
+FILES:${PN}-dbg = "\
     /opt/Installer/bin/.debug \
     "
-FILES_${PN}-dev = "\
+FILES:${PN}-dev = "\
     /usr/src/debug \
     "
     

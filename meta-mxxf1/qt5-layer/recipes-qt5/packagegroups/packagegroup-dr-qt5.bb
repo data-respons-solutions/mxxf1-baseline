@@ -5,7 +5,7 @@ LICENSE = "MIT"
 
 inherit packagegroup
 
-RDEPENDS_${PN} = " \
+RDEPENDS:${PN} = " \
     qtbase \
     qtdeclarative \
     qtdeclarative-qmlplugins \
@@ -33,6 +33,6 @@ RDEPENDS_${PN} = " \
     cinematicexperience \
     qt5everywheredemo \
 "
-RRECOMMENDS_${PN} += " \
+RRECOMMENDS:${PN} += " \
     qtquickcontrols-qmlplugins \
 "

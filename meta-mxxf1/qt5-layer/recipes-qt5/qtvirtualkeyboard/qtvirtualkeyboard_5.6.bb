@@ -13,10 +13,10 @@ SRCREV = "68c30e00b0d9850643611d5ba9c29a247ccd44ec"
 SRC_URI = "git://code.qt.io/qt/qtvirtualkeyboard.git;protocol=http;branch=5.6"
 DEPENDS += "qtdeclarative"
 
-RDEPENDS_${PN}-dev = ""
+RDEPENDS:${PN}-dev = ""
 
 S = "${WORKDIR}/git/"
 
-FILES_${PN}-dbg += " \
+FILES:${PN}-dbg += " \
     ${OE_QMAKE_PATH_QML}/*/*/*/*/.debug \
 "

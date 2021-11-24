@@ -18,6 +18,6 @@ do_install () {
 }
 
 
-FILES_${PN} = "${bindir}/buzzer"
+FILES:${PN} = "${bindir}/buzzer"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

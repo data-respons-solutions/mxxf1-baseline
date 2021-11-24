@@ -14,7 +14,7 @@ inherit systemd
 
 
 S = "${WORKDIR}"
-RDEPENDS_${PN} = "python3 eeprom-gen avahi-daemon"
+RDEPENDS:${PN} = "python3 eeprom-gen avahi-daemon"
 
 do_install () {
     install -d ${D}${bindir}
@@ -25,8 +25,8 @@ do_install () {
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
-FILES_${PN} = "${bindir}/*"
+FILES:${PN} = "${bindir}/*"
 
 
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "mxxf1-hostname.service"
+SYSTEMD_SERVICE:${PN} = "mxxf1-hostname.service"

@@ -9,7 +9,7 @@ SRC_URI = " \
 
 S = "${WORKDIR}"
 
-RDEPENDS_${PN} = "ppctest ppctest-tools ppcgui eeprom-gen eeprom-gen-generate qt5-eglfs-mxxf1"
+RDEPENDS:${PN} = "ppctest ppctest-tools ppcgui eeprom-gen eeprom-gen-generate qt5-eglfs-mxxf1"
 
 do_install() {
 	install -d ${D}${systemd_unitdir}/system
@@ -22,4 +22,4 @@ inherit allarch  systemd
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "ppctest.service ppcgui.service"
+SYSTEMD_SERVICE:${PN} = "ppctest.service ppcgui.service"

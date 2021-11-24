@@ -23,5 +23,5 @@ do_install () {
 	install -m 0644 ${S}/bltable.cal ${D}/opt
 }
 
-FILES_${PN}_append = " /opt"
+FILES:${PN}:append = " /opt"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
