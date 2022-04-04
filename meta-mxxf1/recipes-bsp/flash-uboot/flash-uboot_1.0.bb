@@ -8,7 +8,6 @@ SRC_URI = 	"file://flash-uboot.py \
 		 	file://erase-uboot-env.py \
 		 	file://rescue-mmc-boot.sh \
 		 "
-PR = "r0"
 
 RDEPENDS:${PN} = "python3"
 

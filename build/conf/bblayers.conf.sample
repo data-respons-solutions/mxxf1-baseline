@@ -16,6 +16,5 @@ BBLAYERS ?= " \
   ##OEROOT##/../meta-mxxf1 \
   ##OEROOT##/../meta-qt5 \
   ##OEROOT##/../meta-freescale \
-  ##OEROOT##/../meta-freescale-distro \
 "
 BBMASK = "meta-imx/meta-bsp/recipes-kernel/kernel-modules/*"

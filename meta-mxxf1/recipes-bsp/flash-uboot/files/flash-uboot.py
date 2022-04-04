@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, errno, os, subprocess, hashlib
+import sys, errno, os, subprocess, hashlib, gpiod
 
 mtd_file = "/dev/mtd0"
 mtd0_size=0;
@@ -17,7 +17,7 @@ def get_mtd_hash(offset, length):
 
 
 def get_partitioning():
-  
+
   with open("/proc/mtd", "r") as mtd:
     slist = mtd.read().splitlines()
     slist.pop(0)
@@ -39,11 +39,11 @@ def check_same(spl, ub):
   stat_spl = os.stat(spl)
   with open(spl, "rb") as fspl:
     spl_bytes = fspl.read(stat_spl.st_size)
-    
+
   stat_uboot = os.stat(ub)
   with open(ub, "rb") as fub:
     ub_bytes = fub.read(stat_uboot.st_size)
-  
+
   splhash = hashlib.md5()
   splhash.update(spl_bytes)
   mtd_spl_digest = get_mtd_hash(1024, stat_spl.st_size);
@@ -52,7 +52,7 @@ def check_same(spl, ub):
     print(spl.ljust(20),splhash.hexdigest())
     print("flash SPL:".ljust(20), mtd_spl_digest)
     same = 0
-    
+
   mtd_ub_digest = get_mtd_hash(1024*256, stat_uboot.st_size)
   ubhash = hashlib.md5()
   ubhash.update(ub_bytes)
@@ -60,17 +60,8 @@ def check_same(spl, ub):
     print(ub.ljust(20),ubhash.hexdigest())
     print("flash u-boot".ljust(20), mtd_ub_digest)
     same = 0
-  
+
   return same;
-
-def enable_write():
-  stdout = open("/sys/class/gpio/gpio171/value", "w")
-  subprocess.call(["/bin/echo", "0"], stdout=stdout)
-
-def disable_write():
-  stdout = open("/sys/class/gpio/gpio171/value", "w")
-  subprocess.call(["/bin/echo", "1"], stdout=stdout)
-
 
 def erase_flash():
   try:
@@ -82,56 +73,57 @@ def erase_flash():
       print(str.format("Erase mtd1 [{0}: {1}]", mtd_names[1], mtd_size[1]))
       subprocess.check_call(["/usr/sbin/mtd_debug", "erase", "/dev/mtd1", "0", mtd_size[1]])
       print(mtd_names[1], "Erased")
-      
+
   except subprocess.CalledProcessError as e:
-    print("Exception in erase_flash:",os.strerror(e.returncode))
-    raise e
+    print("Exception in erase_flash command:",os.strerror(e.returncode))
+    raise OSError('mtd failed erase')
 
 # Write the flash
 def write_flash(offset, file_name):
   fstat = os.stat(file_name)
-  enable_write()
   with open(file_name, "rb") as f:
     file_bytes = f.read(fstat.st_size);
-    
+
   with open(mtd_file, "wb") as mtd:
     mtd.seek(offset)
     mtd.write(file_bytes)
-    
-  disable_write()
+
   return 0
-  
+
 
 # Program starts here
 result = 0
+
+line = gpiod.find_line("spiflash-wp")
+if (line == None):
+  print("No GPIO named spiflash-wp")
+  sys.exit(1)
+
 if len(sys.argv) < 3:
   print ("usage: flash <spl> <image>")
   sys.exit(1)
 
 try:
   get_partitioning()
-  
+
   # Check need for update
   t = check_same(sys.argv[1], sys.argv[2])
-  if (t == 0):
+  if (t==0):
     print("NEED TO FLASH")
-    enable_write()
-    ret = erase_flash()
-    if (ret):
-      print("Erase failed")
-      disable_write()
-      sys.exit(ret)
+    line.request(sys.argv[0])
+    line.set_direction_output()
+    line.set_value(1)
+    print("Enabled flash for write")
+    erase_flash()
+    write_flash(0x400, sys.argv[1])
+    write_flash(0x40000, sys.argv[2])
+    if (check_same(sys.argv[1], sys.argv[2])):
+      print("Flash updated")
     else:
-      write_flash(0x400, sys.argv[1])
-      write_flash(0x40000, sys.argv[2])
-      if (check_same(sys.argv[1], sys.argv[2])):
-        print("Flash updated")
-      else:
-        result = 1
-        print("FAILURE")
+      result = 1
+      print("FAILURE")
   else:
     print("Flash is up to date, no programming")
-  disable_write()
 except IOError as e:
   print("IO Error", os.strerror(e.errno))
   result = e.errno
@@ -140,7 +132,8 @@ except OSError as e:
   result = e.errno
 
 finally:
-  disable_write()
+  if (line.is_requested()):
+    line.set_value(0)
+    line.release()
 
 sys.exit(result)
-

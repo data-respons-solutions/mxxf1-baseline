@@ -19,4 +19,5 @@ RDEPENDS:${PN} += " \
     rpm-dev \
     rpm-build \
     parted-dev \
+    libgpiod-dev \
 "

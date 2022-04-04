@@ -6,7 +6,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-or-later;md5=fed5435554
 
 inherit module
 
-SRCREV ?= "b476a80f1a238bf9dece64e829cc457223e77e6e"
+SRCREV ?= "6cd840668292e452e4b24ca505e196139ce5e650"
 SRC_URI = "git://git@github.com/data-respons-solutions/kernel-module-egalax-i2c.git;protocol=ssh;branch=master"
 
 S = "${WORKDIR}/git"

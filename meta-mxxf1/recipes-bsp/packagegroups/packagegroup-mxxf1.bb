@@ -22,6 +22,8 @@ RDEPENDS:${PN} = " \
     pciutils \
     i2c-tools \
     phytool \
+    libgpiod-tools \
+    evtest \
 "
 
 

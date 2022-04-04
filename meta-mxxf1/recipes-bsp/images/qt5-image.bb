@@ -1,7 +1,7 @@
 DESCRIPTION = "Data Respons RRM10  Qt5 image"
 
 IMAGE_FEATURES += "ssh-server-openssh package-management hwcodecs debug-tweaks"
-inherit core-image
+inherit core-image dr-image-info
 
 IMAGE_INSTALL = "\
     ${CORE_IMAGE_BASE_INSTALL} \
@@ -16,5 +16,4 @@ IMAGE_INSTALL = "\
     networkmanager-bash-completion \
     stressapptest \
     flash-uboot \
-    eeprom-gen-generate \
 "
