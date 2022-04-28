@@ -1,7 +1,7 @@
 From 3becc70b6b8925457042876eee6bdf88e235a931 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <60462772+hcl-dr@users.noreply.github.com>
 Date: Tue, 15 Dec 2020 18:21:49 +0100
-Subject: [PATCH 2/4] Add misc devices
+Subject: [PATCH 2/3] Add misc devices
 
 ---
  drivers/misc/Kconfig           |  12 ++

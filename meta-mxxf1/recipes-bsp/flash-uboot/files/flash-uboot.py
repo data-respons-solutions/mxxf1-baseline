@@ -63,6 +63,25 @@ def check_same(spl, ub):
 
   return same;
 
+def verify(filename, offset, foffset):
+
+  print("\nVerify", filename)
+  same = 1;
+  stat_file = os.stat(filename)
+  with open(filename, "rb") as f:
+    f.seek(foffset)
+    bytes = f.read(stat_file.st_size - foffset)
+
+  readhash = hashlib.md5()
+  readhash.update(bytes)
+  mtd_digest = get_mtd_hash(offset, stat_file.st_size - foffset);
+  if (mtd_digest != readhash.hexdigest() ):
+    print(filename.ljust(20),readhash.hexdigest())
+    print("flash".ljust(20), mtd_digest)
+    same = 0
+
+  return same
+
 def erase_flash():
   try:
     print(str.format("Erase mtd0 [{0}: {1}]", mtd_names[0], mtd_size[0]))
@@ -79,10 +98,11 @@ def erase_flash():
     raise OSError('mtd failed erase')
 
 # Write the flash
-def write_flash(offset, file_name):
+def write_flash(offset, foffset, file_name):
   fstat = os.stat(file_name)
   with open(file_name, "rb") as f:
-    file_bytes = f.read(fstat.st_size);
+    f.seek(foffset)
+    file_bytes = f.read(fstat.st_size - foffset);
 
   with open(mtd_file, "wb") as mtd:
     mtd.seek(offset)
@@ -93,31 +113,46 @@ def write_flash(offset, file_name):
 
 # Program starts here
 result = 0
-
+seekoffset  = 1024
 line = gpiod.find_line("spiflash-wp")
 if (line == None):
   print("No GPIO named spiflash-wp")
   sys.exit(1)
 
-if len(sys.argv) < 3:
-  print ("usage: flash <spl> <image>")
+if len(sys.argv) < 2:
+  print ("usage: flash [spl] <image>")
   sys.exit(1)
 
 try:
   get_partitioning()
 
   # Check need for update
-  t = check_same(sys.argv[1], sys.argv[2])
-  if (t==0):
+  
+  if (len(sys.argv) == 3):
+    t1 = verify(sys.argv[1], 0x400, 0)
+    t2 = verify(sys.argv[2], 0x40000)
+  else:
+    t1 = verify(sys.argv[1], 0x400, 1024)
+    t2 = 1
+    
+  if (t1 == 0 or t2 == 0):
     print("NEED TO FLASH")
     line.request(sys.argv[0])
     line.set_direction_output()
     line.set_value(1)
     print("Enabled flash for write")
     erase_flash()
-    write_flash(0x400, sys.argv[1])
-    write_flash(0x40000, sys.argv[2])
-    if (check_same(sys.argv[1], sys.argv[2])):
+    if (len(sys.argv) == 3):
+      print("Write U-Boot SPL type")
+      write_flash(0x400, 0, sys.argv[1])
+      t1 = verify(sys.argv[1], 1024, 0)
+      write_flash(0x40000, 0, sys.argv[2])
+      t2 = verify(sys.argv[2], 0x40000, 0)
+    else:
+      print("Write Barebox bootloader")
+      write_flash(0x400, 1024, sys.argv[1])
+      t1 = verify(sys.argv[1], 1024, 1024)
+    if (t1 and t2):
       print("Flash updated")
     else:
       result = 1

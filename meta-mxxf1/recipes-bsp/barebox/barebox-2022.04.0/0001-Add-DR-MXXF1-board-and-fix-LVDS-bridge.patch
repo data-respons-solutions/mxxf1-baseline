@@ -1,0 +1,2684 @@
+From 3d3a6c5059b365813ae906b2880eb3cf564c9d51 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.com>
+Date: Sat, 23 Apr 2022 18:28:57 +0200
+Subject: [PATCH] Add DR MXXF1 board and fix LVDS bridge
+
+LVDS: Avoid re-parenting of IPU DI clocks
+Assign clock rates according to LVDS 7 to 1 scheme
+---
+ arch/arm/boards/Makefile                      |   1 +
+ arch/arm/boards/dr-mxxf1/Makefile             |   2 +
+ arch/arm/boards/dr-mxxf1/board.c              | 120 +++
+ arch/arm/boards/dr-mxxf1/ddr-init.c           | 186 ++++
+ arch/arm/boards/dr-mxxf1/env/boot/default     |  15 +
+ arch/arm/boards/dr-mxxf1/env/boot/sdcard      |   6 +
+ arch/arm/boards/dr-mxxf1/env/boot/system0     |   6 +
+ arch/arm/boards/dr-mxxf1/env/boot/system1     |   6 +
+ arch/arm/boards/dr-mxxf1/env/boot/usb         |   6 +
+ arch/arm/boards/dr-mxxf1/env/init/greeting    |   7 +
+ arch/arm/boards/dr-mxxf1/env/init/setup_boot  |   7 +
+ .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 147 +++
+ .../dr-mxxf1/flash-header-mxxf1-pbl.imxcfg    |   6 +
+ arch/arm/boards/dr-mxxf1/lowlevel.c           |  55 ++
+ arch/arm/boards/dr-mxxf1/mxxf1-gpio.h         |  39 +
+ arch/arm/boards/dr-mxxf1/param.c              | 249 +++++
+ arch/arm/boards/dr-mxxf1/param.h              |  32 +
+ arch/arm/boards/dr-mxxf1/vpd-eeprom.c         | 171 ++++
+ arch/arm/configs/dr-mxxf1_defconfig           | 181 ++++
+ arch/arm/dts/Makefile                         |   1 +
+ arch/arm/dts/mxxf1-common.dtsi                | 920 ++++++++++++++++++
+ arch/arm/dts/mxxf1-hw4.dts                    |  82 ++
+ arch/arm/dts/mxxf1.dts                        |  75 ++
+ arch/arm/mach-imx/Kconfig                     |   6 +
+ drivers/usb/dwc3/core.c                       |   3 +-
+ drivers/video/imx-ipu-v3/imx-ldb.c            |  19 +-
+ drivers/video/imx-ipu-v3/ipufb.c              |  20 +-
+ images/Makefile.imx                           |   4 +
+ 28 files changed, 2364 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
+ create mode 100644 arch/arm/boards/dr-mxxf1/board.c
+ create mode 100644 arch/arm/boards/dr-mxxf1/ddr-init.c
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/default
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/sdcard
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/system0
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/system1
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/usb
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/init/greeting
+ create mode 100644 arch/arm/boards/dr-mxxf1/env/init/setup_boot
+ create mode 100644 arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
+ create mode 100644 arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
+ create mode 100644 arch/arm/boards/dr-mxxf1/lowlevel.c
+ create mode 100644 arch/arm/boards/dr-mxxf1/mxxf1-gpio.h
+ create mode 100644 arch/arm/boards/dr-mxxf1/param.c
+ create mode 100644 arch/arm/boards/dr-mxxf1/param.h
+ create mode 100644 arch/arm/boards/dr-mxxf1/vpd-eeprom.c
+ create mode 100644 arch/arm/configs/dr-mxxf1_defconfig
+ create mode 100644 arch/arm/dts/mxxf1-common.dtsi
+ create mode 100644 arch/arm/dts/mxxf1-hw4.dts
+ create mode 100644 arch/arm/dts/mxxf1.dts
+
+diff --git a/arch/arm/boards/Makefile b/arch/arm/boards/Makefile
+index 75e15cbda..1b87a4c6e 100644
+--- a/arch/arm/boards/Makefile
++++ b/arch/arm/boards/Makefile
+@@ -191,3 +191,4 @@ obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
+ obj-$(CONFIG_MACH_RK3568_EVB)			+= rockchip-rk3568-evb/
+ obj-$(CONFIG_MACH_RK3568_BPI_R2PRO)			+= rockchip-rk3568-bpi-r2pro/
+ obj-$(CONFIG_MACH_PINE64_QUARTZ64)		+= pine64-quartz64/
++obj-$(CONFIG_MACH_DR_MXXF1)				+= dr-mxxf1/
+diff --git a/arch/arm/boards/dr-mxxf1/Makefile b/arch/arm/boards/dr-mxxf1/Makefile
+new file mode 100644
+index 000000000..dab1fecbe
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/Makefile
+@@ -0,0 +1,2 @@
++obj-y += board.o param.o vpd-eeprom.o
++lwl-y += lowlevel.o
+diff --git a/arch/arm/boards/dr-mxxf1/board.c b/arch/arm/boards/dr-mxxf1/board.c
+new file mode 100644
+index 000000000..c58d2e621
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/board.c
+@@ -0,0 +1,120 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++// SPDX-FileCopyrightText: 2012 Steffen Trumtrar, Pengutronix
++
++/*
++ * based on arch/arm/boards/freescale-mx6-arm2/board.c
++ */
++
++#include <common.h>
++#include <init.h>
++#include <environment.h>
++#include <mach/imx6-regs.h>
++#include <gpio.h>
++#include <mach/bbu.h>
++#include <asm/armlinux.h>
++#include <generated/mach-types.h>
++#include <partition.h>
++#include <linux/phy.h>
++#include <asm/io.h>
++#include <asm/mmu.h>
++//#include <mach/generic.h>
++#include <linux/sizes.h>
++#include <net.h>
++#include <linux/micrel_phy.h>
++#include <mach/imx6.h>
++#include <mach/devices-imx6.h>
++#include <mach/iomux-mx6.h>
++#include <spi/spi.h>
++#include <mach/spi.h>
++#include <mach/usb.h>
++#include <mfd/pfuze.h>
++#include <globalvar.h>
++#include <environment.h>
++
++#include "mxxf1-gpio.h"
++#include "param.h"
++#define PFUZE100_SW3B_VOLT 0x43
++
++static void setup_pmic_voltages(struct regmap *map)
++{
++	/* Set DDR3 to 1.35V */
++	regmap_write(map, PFUZE100_SW3B_VOLT, 11);
++}
++
++static int setup_gpio(void)
++{
++	gpio_direction_output(GPIO_PCIE_RST_N, 1);
++	gpio_direction_output(GPIO_EEPROM_WP, 1);
++	gpio_direction_output(GPIO_SPI_NOR_WP, 0);
++	gpio_direction_output(GPIO_BL_EN, 0);
++	gpio_direction_output(GPIO_FAN_EN, 0);
++	gpio_direction_output(GPIO_BUZ_EXT_EN, 0);
++	gpio_direction_output(GPIO_LVDS_ROTATE, 0);
++	gpio_direction_input(GPIO_TOUCH_IRQ);
++
++	gpio_direction_input(GPIO_HW_REV0);
++	gpio_direction_input(GPIO_HW_REV1);
++	gpio_direction_input(GPIO_HW_REV2);
++	gpio_direction_input(GPIO_HW_REV3);
++	return 0;
++}
++
++static void reset_hub(void) {
++	gpio_direction_output(GPIO_USB_HUB_RESET_N, 1);
++	udelay(5);
++	gpio_set_value(GPIO_USB_HUB_RESET_N, 0);
++	udelay(100);
++	gpio_set_value(GPIO_USB_HUB_RESET_N, 1);
++	mdelay(10);
++}
++
++static int mxxf1_coredevices_init(void)
++{
++	if (!(of_machine_is_compatible("datarespons,mxxf1") ||
++	      of_machine_is_compatible("datarespons,mxxf1-hw4")))
++		return 0;
++	setenv("cpu_type", "IMX6Q");
++	barebox_set_hostname("mxxf1");
++	pfuze_register_init_callback(setup_pmic_voltages);
++
++	return 0;
++}
++coredevice_initcall(mxxf1_coredevices_init);
++
++static int mxxf1_board_fixup(void)
++{
++	unsigned rev=0;
++	char gpname[8];
++	int gp, n;
++	setup_gpio();
++
++	for (n=0; n < 4; n++) {
++		sprintf(gpname, "hwrev%d", n);
++		gp = gpio_find_by_name(gpname);
++		if (gp) {
++			rev |= gpio_get_value(gp) ? 1 << n : 0;
++		} else {
++			pr_err("%s: Failed getting GPIO %s\n", __func__, gpname);
++		}
++	}
++	sprintf(gpname, "%d", rev);
++	globalvar_add_simple("board.revision", gpname);
++	switch(rev) {
++		case 0:
++		case 1:
++		case 2:
++		case 3:
++			globalvar_add_simple("dtb_file", "mxxf1.dtb");
++			break;
++		case 4:
++			globalvar_add_simple("dtb_file", "mxxf1-hw4.dtb");
++			reset_hub();
++			break;
++		default:
++			globalvar_add_simple("dtb_file", "mxxf1-hw4.dtb");
++			break;
++	}
++	return 0;
++}
++
++late_initcall(mxxf1_board_fixup);
+diff --git a/arch/arm/boards/dr-mxxf1/ddr-init.c b/arch/arm/boards/dr-mxxf1/ddr-init.c
+new file mode 100644
+index 000000000..e744ce7ba
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/ddr-init.c
+@@ -0,0 +1,186 @@
++#include <mach/imx6-mmdc.h>
++#include <mach/imx6-ddr-regs.h>
++
++
++const struct mx6dq_iomux_ddr_regs mx6_ddr_ioregs = {
++	.dram_sdclk_0 =  0x00020030,
++	.dram_sdclk_1 =  0x00020030,
++	.dram_cas =  0x00020030,
++	.dram_ras =  0x00020030,
++	.dram_reset =  0x00020030,
++	.dram_sdcke0 =  0x00003000,
++	.dram_sdcke1 =  0x00003000,
++	.dram_sdba2 =  0x00000000,
++	.dram_sdodt0 =  0x00003030,
++	.dram_sdodt1 =  0x00003030,
++	.dram_sdqs0 =  0x00000030,
++	.dram_sdqs1 =  0x00000030,
++	.dram_sdqs2 =  0x00000030,
++	.dram_sdqs3 =  0x00000030,
++	.dram_sdqs4 =  0x00000030,
++	.dram_sdqs5 =  0x00000030,
++	.dram_sdqs6 =  0x00000030,
++	.dram_sdqs7 =  0x00000030,
++	.dram_dqm0 =  0x00020030,
++	.dram_dqm1 =  0x00020030,
++	.dram_dqm2 =  0x00020030,
++	.dram_dqm3 =  0x00020030,
++	.dram_dqm4 =  0x00020030,
++	.dram_dqm5 =  0x00020030,
++	.dram_dqm6 =  0x00020030,
++	.dram_dqm7 =  0x00020030,
++};
++
++const struct mx6dq_iomux_grp_regs mx6_grp_ioregs = {
++	.grp_ddr_type =  0x000C0000,
++	.grp_ddrmode_ctl =  0x00020000,
++	.grp_ddrpke =  0x00000000,
++	.grp_addds =  0x00000030,
++	.grp_ctlds =  0x00000030,
++	.grp_ddrmode =  0x00020000,
++	.grp_b0ds =  0x00000030,
++	.grp_b1ds =  0x00000030,
++	.grp_b2ds =  0x00000030,
++	.grp_b3ds =  0x00000030,
++	.grp_b4ds =  0x00000030,
++	.grp_b5ds =  0x00000030,
++	.grp_b6ds =  0x00000030,
++	.grp_b7ds =  0x00000030,
++};
++
++const struct mx6_mmdc_calibration mx6_mmcd_calib_static = {
++	/* write leveling calibration */
++	.p0_mpwldectrl0 = 0x00160018,
++	.p0_mpwldectrl1 = 0x0025001A,
++	.p1_mpwldectrl0 = 0x0017002B,
++	.p1_mpwldectrl1 = 0x0017002F,
++	/* Read DQS Gating calibration */
++	.p0_mpdgctrl0 = 0x032C0338,
++	.p0_mpdgctrl1 = 0x03280324,
++	.p1_mpdgctrl0 = 0x03300340,
++	.p1_mpdgctrl1 = 0x03280268,
++	/* Read Calibration: DQS delay relative to DQ read access */
++	.p0_mprddlctl = 0x3C343234,
++	.p1_mprddlctl = 0x3636303E,
++	/* Write Calibration: DQ/DM delay relative to DQS write access */
++	.p0_mpwrdlctl = 0x363A3C3C,
++	.p1_mpwrdlctl = 0x4630483C,
++};
++
++
++
++static struct mx6_ddr3_cfg mem_ddr = {
++	.mem_speed = 1600,
++	.density = 2,
++	.width = 16,
++	.banks = 8,
++	.rowaddr = 14,
++	.coladdr = 10,
++	.pagesz = 2,
++	.trcd = 1375,
++	.trcmin = 4875,
++	.trasmin = 3500,
++	.SRT = 1,
++};
++
++static void ccgr_init(void)
++{
++	writel(0x00C03F3F, MX6_CCM_BASE_ADDR);
++	writel(0x0030FC03, MX6_CCM_BASE_ADDR + 4);
++	writel(0x0FFFC000, MX6_CCM_BASE_ADDR + 8);
++	writel(0x3FF00000, MX6_CCM_BASE_ADDR + 12);
++	writel(0x00FFF300, MX6_CCM_BASE_ADDR + 16);
++	writel(0x0F0000C3, MX6_CCM_BASE_ADDR + 20);
++	writel(0x000003FF, MX6_CCM_BASE_ADDR + 24);
++}
++
++
++static struct mx6_ddr_sysinfo sysinfo = {
++	/* width of data bus:0=16,1=32,2=64 */
++	.dsize = 2,
++	/* config for full 4GB range so that get_mem_size() works */
++	.cs_density = 32, /* 32Gb per CS */
++	/* single chip select */
++	.ncs = 1,
++	.cs1_mirror = 0,
++	.rtt_wr = 1 /*DDR3_RTT_60_OHM*/,	/* RTT_Wr = RZQ/4 */
++	.rtt_nom = 1 /*DDR3_RTT_60_OHM*/,	/* RTT_Nom = RZQ/4 */
++	.walat = 1,	/* Write additional latency */
++	.ralat = 5,	/* Read additional latency */
++	.mif3_mode = 3,	/* Command prediction working mode */
++	.bi_on = 1,	/* Bank interleaving enabled */
++	.sde_to_rst = 0x10,	/* 14 cycles, 200us (JEDEC default) */
++	.rst_to_cke = 0x23,	/* 33 cycles, 500us (JEDEC default) */
++};
++
++
++static void spl_dram_init(void)
++{
++	mx6dq_dram_iocfg(64, &mx6_ddr_ioregs, &mx6_grp_ioregs);
++	mx6_dram_cfg(&sysinfo, &mx6_mmcd_calib_static, &mem_ddr);
++}
++
++static void mmdc_read_calibration(struct mx6_ddr_sysinfo const *sysinfo,
++                           struct mx6_mmdc_calibration *calib)
++{
++	struct mmdc_p_regs *mmdc0 = (struct mmdc_p_regs *)MX6_MMDC_P0_BASE_ADDR;
++	struct mmdc_p_regs *mmdc1 = (struct mmdc_p_regs *)MX6_MMDC_P1_BASE_ADDR;
++
++	calib->p0_mpwldectrl0 = readl(&mmdc0->mpwldectrl0);
++	calib->p0_mpwldectrl1 = readl(&mmdc0->mpwldectrl1);
++	calib->p0_mpdgctrl0 = readl(&mmdc0->mpdgctrl0);
++	calib->p0_mpdgctrl1 = readl(&mmdc0->mpdgctrl1);
++	calib->p0_mprddlctl = readl(&mmdc0->mprddlctl);
++	calib->p0_mpwrdlctl = readl(&mmdc0->mpwrdlctl);
++
++	if (sysinfo->dsize == 2) {
++		calib->p1_mpwldectrl0 = readl(&mmdc1->mpwldectrl0);
++		calib->p1_mpwldectrl1 = readl(&mmdc1->mpwldectrl1);
++		calib->p1_mpdgctrl0 = readl(&mmdc1->mpdgctrl0);
++		calib->p1_mpdgctrl1 = readl(&mmdc1->mpdgctrl1);
++		calib->p1_mprddlctl = readl(&mmdc1->mprddlctl);
++		calib->p1_mpwrdlctl = readl(&mmdc1->mpwrdlctl);
++	}
++}
++
++static struct mx6_mmdc_calibration calib = {0};
++static void board_init_f(void)
++{
++	arm_setup_stack(0x00920000);
++	relocate_to_current_adr();
++	setup_c();
++	ccgr_init();
++
++	/* DDR initialization */
++	spl_dram_init();
++	mmdc_read_calibration(&sysinfo, &calib);
++	printf("Calibration results for PHY0\n");
++	printf("mpwldectrl0 = %08x\n", calib.p0_mpwldectrl0);
++	printf("mpwldectrl1 = %08x\n", calib.p0_mpwldectrl1);
++	printf("mpdgctrl0   = %08x\n", calib.p0_mpdgctrl0);
++	printf("mpdgctrl1   = %08x\n", calib.p0_mpdgctrl1);
++	printf("mprddlctl   = %08x\n", calib.p0_mprddlctl);
++	printf("mpwrdlctl   = %08x\n", calib.p0_mpwrdlctl);
++	printf("\nCalibration results for PHY1\n");
++	printf("mpwldectrl0 = %08x\n", calib.p1_mpwldectrl0);
++	printf("mpwldectrl1 = %08x\n", calib.p1_mpwldectrl1);
++	printf("mpdgctrl0   = %08x\n", calib.p1_mpdgctrl0);
++	printf("mpdgctrl1   = %08x\n", calib.p1_mpdgctrl1);
++	printf("mprddlctl   = %08x\n", calib.p1_mprddlctl);
++	printf("mpwrdlctl   = %08x\n", calib.p1_mpwrdlctl);
++}
++
++ENTRY_FUNCTION(start_dr_mxxf1, r0, r1, r2)
++{
++	enum bootsource bootsrc;
++	int instance;
++	void *fdt;
++	imx6_cpu_lowlevel_init();
++	ccgr_init();
++	setup_uart();
++	if (get_pc() < MX6_MMDC_PORT01_BASE_ADDR)
++		board_init_f();
++	imx6_get_boot_source(&bootsrc, &instance);
++	fdt = __dtb_mxxf1_hw4_start + get_runtime_offset();
++	barebox_arm_entry(0x10000000, SZ_1G, fdt);
++}
+diff --git a/arch/arm/boards/dr-mxxf1/env/boot/default b/arch/arm/boards/dr-mxxf1/env/boot/default
+new file mode 100644
+index 000000000..9d6e19645
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/boot/default
+@@ -0,0 +1,15 @@
++#!/bin/sh
++if [ -e /mnt/disk0.0/boot/zImage ]; then
++    echo "Booting USB"
++    boot usb
++fi
++
++if [ -e /mnt/mmc0.0/boot/zImage ]; then
++    echo "Booting SD"
++    boot -w 30 sdcard
++fi
++
++if [ -e /mnt/mmc1.0/boot/zImage ]; then
++    echo "Booting EMMC"
++    boot -w 30 system0
++fi
+diff --git a/arch/arm/boards/dr-mxxf1/env/boot/sdcard b/arch/arm/boards/dr-mxxf1/env/boot/sdcard
+new file mode 100644
+index 000000000..904dab5b6
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/boot/sdcard
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++global.bootm.image=/mnt/mmc0.0/boot/zImage
++dtb=/mnt/mmc0.0/boot/$global.dtb_file
++global.bootm.oftree=$dtb
++global linux.bootargs.dyn.root="root=/dev/mmcblk0p1 rootfstype=ext4 rootwait ro rauc.slot=_external_"
+diff --git a/arch/arm/boards/dr-mxxf1/env/boot/system0 b/arch/arm/boards/dr-mxxf1/env/boot/system0
+new file mode 100644
+index 000000000..133dc278e
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/boot/system0
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++global.bootm.image=/mnt/mmc1.0/boot/zImage
++dtb=/mnt/mmc1.0/boot/$global.dtb_file
++global.bootm.oftree=$dtb
++global linux.bootargs.dyn.root="root=/dev/mmcblk0p1 rootfstype=ext4 rootwait ro rauc.slot=system0"
+diff --git a/arch/arm/boards/dr-mxxf1/env/boot/system1 b/arch/arm/boards/dr-mxxf1/env/boot/system1
+new file mode 100644
+index 000000000..b8ea41474
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/boot/system1
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++global.bootm.image=/mnt/mmc1.1/boot/zImage
++dtb=/mnt/mmc1.1/boot/$global.dtb_file
++global.bootm.oftree=$dtb
++global linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext4 rootwait ro rauc.slot=system0"
+diff --git a/arch/arm/boards/dr-mxxf1/env/boot/usb b/arch/arm/boards/dr-mxxf1/env/boot/usb
+new file mode 100644
+index 000000000..10d571034
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/boot/usb
+@@ -0,0 +1,6 @@
++#!/bin/sh
++
++global.bootm.image=/mnt/disk0.0/boot/zImage
++dtb=/mnt/disk0.0/boot/$global.dtb_file
++global.bootm.oftree=$dtb
++global linux.bootargs.dyn.root="root=/dev/sda1 rootfstype=ext4 rootwait ro rauc.slot=_external_"
+diff --git a/arch/arm/boards/dr-mxxf1/env/init/greeting b/arch/arm/boards/dr-mxxf1/env/init/greeting
+new file mode 100644
+index 000000000..0000c30bc
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/init/greeting
+@@ -0,0 +1,7 @@
++#!/bin/sh
++fb0.enable=1
++fbconsole0.active=oe
++
++echo "DR MXXF1 Barebox: $global.version"
++echo "Board REV is $global.board.revision"
++echo "Reset reason is $global.system.reset"
+diff --git a/arch/arm/boards/dr-mxxf1/env/init/setup_boot b/arch/arm/boards/dr-mxxf1/env/init/setup_boot
+new file mode 100644
+index 000000000..0aeab1ec9
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/env/init/setup_boot
+@@ -0,0 +1,7 @@
++#!/bin/sh
++mmc0.probe=1
++mmc1.probe=1
++global.boot.default="default"
++
++echo "Init USB"
++usb
+diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
+new file mode 100644
+index 000000000..fc6ac10ad
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
+@@ -0,0 +1,147 @@
++# SPDX-License-Identifier: GPL-2.0-only
++
++loadaddr 0x10000000
++soc imx6
++ivtofs 0X400
++
++/* set the default clock gate to save power */
++/*
++wm 32 0x020c4068 0x00C03F3F
++wm 32 0x020c406c 0x0030FC03
++wm 32 0x020c4070 0x0FFFC000
++wm 32 0x020c4074 0x3FF00000
++wm 32 0x020c4078 0x00FFF300
++wm 32 0x020c407c 0x0F0000C3
++wm 32 0x020c4080 0x000003FF
++*/
++
++/* enable AXI cache for VDOA/VPU/IPU */
++wm 32 0x020e0010 0xF00000CF
++/* set IPU AXI-id0 Qos=0xf(bypass) AXI-id1 Qos=0x7 */
++wm 32 0x020e0018 0x007F007F
++wm 32 0x020e001c 0x007F007F
++
++/*
++ * Setup CCM_CCOSR register as follows:
++ *
++ * cko1_en  = 1	   --> CKO1 enabled
++ * cko1_div = 111  --> divide by 8
++ * cko1_sel = 1011 --> ahb_clk_root
++ *
++ * This sets CKO1 at ahb_clk_root/8 = 132/8 = 16.5 MHz
++ */
++/* wm 32 0x020c4060 0x000000fb */
++
++/* DDR */
++wm 32 0x020e05a8 0x00000030
++wm 32 0x020e05b0 0x00000030
++wm 32 0x020e0524 0x00000030
++wm 32 0x020e051c 0x00000030
++
++wm 32 0x020e0518 0x00000030
++wm 32 0x020e050c 0x00000030
++wm 32 0x020e05b8 0x00000030
++wm 32 0x020e05c0 0x00000030
++
++wm 32 0x020e05ac 0x00020030
++wm 32 0x020e05b4 0x00020030
++wm 32 0x020e0528 0x00020030
++wm 32 0x020e0520 0x00020030
++
++wm 32 0x020e0514 0x00020030
++wm 32 0x020e0510 0x00020030
++wm 32 0x020e05bc 0x00020030
++wm 32 0x020e05c4 0x00020030
++
++wm 32 0x020e056c 0x00020030
++wm 32 0x020e0578 0x00020030
++wm 32 0x020e0588 0x00020030
++wm 32 0x020e0594 0x00020030
++
++wm 32 0x020e057c 0x00020030
++wm 32 0x020e0590 0x00003000
++wm 32 0x020e0598 0x00003000
++wm 32 0x020e058c 0x00000000
++
++wm 32 0x020e059c 0x00003030
++wm 32 0x020e05a0 0x00003030
++wm 32 0x020e0784 0x00000030
++wm 32 0x020e0788 0x00000030
++
++wm 32 0x020e0794 0x00000030
++wm 32 0x020e079c 0x00000030
++wm 32 0x020e07a0 0x00000030
++wm 32 0x020e07a4 0x00000030
++
++wm 32 0x020e07a8 0x00000030
++wm 32 0x020e0748 0x00000030
++wm 32 0x020e074c 0x00000030
++wm 32 0x020e0750 0x00020000
++
++wm 32 0x020e0758 0x00000000
++wm 32 0x020e0774 0x00020000
++wm 32 0x020e078c 0x00000030
++wm 32 0x020e0798 0x000C0000
++
++wm 32 0x021b081c 0x33333333
++wm 32 0x021b0820 0x33333333
++wm 32 0x021b0824 0x33333333
++wm 32 0x021b0828 0x33333333
++
++wm 32 0x021b481c 0x33333333
++wm 32 0x021b4820 0x33333333
++wm 32 0x021b4824 0x33333333
++wm 32 0x021b4828 0x33333333
++
++wm 32 0x021b0018 0x00081740
++
++wm 32 0x021b001c 0x00008000
++wm 32 0x021b000c 0x555A7974
++wm 32 0x021b0010 0xDB538F64
++wm 32 0x021b0014 0x01FF00DB
++wm 32 0x021b002c 0x000026D2
++
++wm 32 0x021b0030 0x005A1023
++wm 32 0x021b0008 0x09444040
++wm 32 0x021b0004 0x00025576
++wm 32 0x021b0040 0x00000027
++wm 32 0x021b0000 0x831A0000
++
++wm 32 0x021b001c 0x04088032
++wm 32 0x021b001c 0x0408803A
++wm 32 0x021b001c 0x00008033
++wm 32 0x021b001c 0x0000803B
++wm 32 0x021b001c 0x00428031
++wm 32 0x021b001c 0x00428039
++wm 32 0x021b001c 0x19308030
++wm 32 0x021b001c 0x19308038
++
++wm 32 0x021b001c 0x04008040
++wm 32 0x021b001c 0x04008048
++wm 32 0x021b0800 0xA1380003
++wm 32 0x021b4800 0xA1380003
++wm 32 0x021b0020 0x00005800
++wm 32 0x021b0818 0x00022227
++wm 32 0x021b4818 0x00022227
++
++wm 32 0x021b083c 0x434B0350
++wm 32 0x021b0840 0x034C0359
++wm 32 0x021b483c 0x434B0350
++wm 32 0x021b4840 0x03650348
++wm 32 0x021b0848 0x4436383B
++wm 32 0x021b4848 0x39393341
++wm 32 0x021b0850 0x35373933
++wm 32 0x021b4850 0x48254A36
++
++wm 32 0x021b080c 0x001F001F
++wm 32 0x021b0810 0x001F001F
++
++wm 32 0x021b480c 0x00440044
++wm 32 0x021b4810 0x00440044
++
++wm 32 0x021b08b8 0x00000800
++wm 32 0x021b48b8 0x00000800
++
++wm 32 0x021b001c 0x00000000
++wm 32 0x021b0404 0x00011006
++
+diff --git a/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
+new file mode 100644
+index 000000000..0b37ab248
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
+@@ -0,0 +1,6 @@
++# SPDX-License-Identifier: GPL-2.0-only
++
++soc imx6
++loadaddr 0x00907000
++max_load_size 0x31000
++ivtofs 0x400
+diff --git a/arch/arm/boards/dr-mxxf1/lowlevel.c b/arch/arm/boards/dr-mxxf1/lowlevel.c
+new file mode 100644
+index 000000000..4fc444989
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/lowlevel.c
+@@ -0,0 +1,55 @@
++#include <common.h>
++#include <linux/sizes.h>
++#include <mach/generic.h>
++#include <mach/imx6.h>
++#include <mach/xload.h>
++#include <asm/barebox-arm-head.h>
++#include <asm/barebox-arm.h>
++#include <mach/imx6-regs.h>
++#include <io.h>
++#include <mach/debug_ll.h>
++#include <mach/esdctl.h>
++#include <asm/cache.h>
++#include <mach/iomux-mx6.h>
++
++extern char __dtb_mxxf1_hw4_start[];
++extern char __dtb_mxxf1_start[];
++
++static noinline void setup_uart(void)
++{
++	void __iomem *iomuxbase = IOMEM(MX6_IOMUXC_BASE_ADDR);
++	void __iomem *uart = IOMEM(MX6_UART1_BASE_ADDR);
++
++	imx_setup_pad(iomuxbase, MX6Q_PAD_CSI0_DAT10__UART1_TXD);
++
++	imx6_uart_setup(uart);
++	pbl_set_putc(imx_uart_putc, uart);
++	pr_debug("DR MXXF1\n");
++}
++
++
++ENTRY_FUNCTION(start_dr_mxxf1_hw4, r0, r1, r2)
++{
++	enum bootsource bootsrc;
++	int instance;
++	void *fdt;
++	imx6_cpu_lowlevel_init();
++	imx6_ungate_all_peripherals();
++	setup_uart();
++	imx6_get_boot_source(&bootsrc, &instance);
++	fdt = __dtb_mxxf1_hw4_start + get_runtime_offset();
++	barebox_arm_entry(0x10000000, SZ_1G, fdt);
++}
++
++ENTRY_FUNCTION(start_dr_mxxf1, r0, r1, r2)
++{
++	enum bootsource bootsrc;
++	int instance;
++	void *fdt;
++	imx6_cpu_lowlevel_init();
++	imx6_ungate_all_peripherals();
++	setup_uart();
++	imx6_get_boot_source(&bootsrc, &instance);
++	fdt = __dtb_mxxf1_start + get_runtime_offset();
++	barebox_arm_entry(0x10000000, SZ_1G, fdt);
++}
+diff --git a/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h b/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h
+new file mode 100644
+index 000000000..1748ec6b8
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h
+@@ -0,0 +1,39 @@
++#ifndef __MXXF1_GPIO_H__
++#define __MXXF1_GPIO_H__
++
++#define GPIO_AUX_5V IMX_GPIO_NR(6, 10)
++#define GPIO_PCIE_RST_N IMX_GPIO_NR(7, 12)
++#define GPIO_EEPROM_WP	IMX_GPIO_NR(1, 5)
++#define GPIO_SPI_NOR_WP	IMX_GPIO_NR(6, 11)
++#define GPIO_LAN2_EE_WP	IMX_GPIO_NR(6, 14)
++#define GPIO_CAP_TOUCH_RST	IMX_GPIO_NR(6, 16)
++#define GPIO_CAP_TOUCH_PWR	IMX_GPIO_NR(1, 4)
++#define GPIO_LCD_EN	IMX_GPIO_NR(6, 15)
++#define GPIO_BL_EN	IMX_GPIO_NR(1, 2)
++#define GPIO_BL_PWM	IMX_GPIO_NR(1, 9)
++#define GPIO_FAN_EN IMX_GPIO_NR(1, 18)
++#define GPIO_BUZ_INT_EN IMX_GPIO_NR(1, 17)
++#define GPIO_BUZ_EXT_EN IMX_GPIO_NR(1, 19)
++
++#define GPIO_USB_H1_EN	IMX_GPIO_NR(1, 29)
++#define GPIO_USBP0_EN	IMX_GPIO_NR(3, 28)
++#define GPIO_USBP1_EN	IMX_GPIO_NR(2, 3)
++#define GPIO_USBP2_EN	IMX_GPIO_NR(2, 7)
++#define GPIO_USBP3_EN	IMX_GPIO_NR(6, 9)
++#define GPIO_LVDS_ROTATE IMX_GPIO_NR(7, 11)
++
++#define GPIO_DIMM_DN IMX_GPIO_NR(4, 6)
++#define GPIO_DIMM_UP IMX_GPIO_NR(4, 7)
++
++#define GPIO_TOUCH_IRQ IMX_GPIO_NR(6, 8)
++#define USDHC3_CD_GPIO	IMX_GPIO_NR(2, 0)
++
++#define GPIO_HW_REV0 IMX_GPIO_NR(1, 15)
++#define GPIO_HW_REV1 IMX_GPIO_NR(1, 14)
++#define GPIO_HW_REV2 IMX_GPIO_NR(1, 13)
++#define GPIO_HW_REV3 IMX_GPIO_NR(1, 12)
++
++#define GPIO_FEC_PHY_NRST IMX_GPIO_NR(1, 25)
++#define GPIO_USB_HUB_RESET_N IMX_GPIO_NR(4, 9)
++
++#endif
+diff --git a/arch/arm/boards/dr-mxxf1/param.c b/arch/arm/boards/dr-mxxf1/param.c
+new file mode 100644
+index 000000000..1ee896648
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/param.c
+@@ -0,0 +1,249 @@
++#include <common.h>
++#include <malloc.h>
++
++#include <crc.h>
++#include <linux/err.h>
++#include "param.h"
++
++int param_init(struct param *e, const char *from, int size)
++{
++	e->size = size;
++	e->data = malloc(size);
++	e->count = 0;
++	e->usage = 4;
++
++	if (!e->data) {
++		pr_err("%s: Internal error: Could not allocate memory. Aborting\n",
++		       __func__);
++		return -EINVAL;
++	}
++	memcpy(e->data, from, size);
++	return 0;
++}
++
++int param_find(struct param *e, const char *key)
++{
++	int i;
++	int len = strlen(key);
++	for (i = 0; i < e->count; i++) {
++		const char *param = e->param[i];
++
++		// Find the location of the '='
++		const char *sep = strchr(param, '=');
++
++		// Find the length of the key. If no '=' is found, use the full parameter.
++		int klen = (sep) ? sep - param : (signed)strlen(param);
++		if (klen != len)
++			continue;
++
++		// Compare the given key with the parameter key
++		if (!strncmp(key, param, klen)) {
++			return i;
++		}
++	}
++	printf("%s: Did not find any key '%s'\n", __func__, key);
++	return -1;
++}
++
++int param_delete(struct param *e, const char *key)
++{
++	int index, len;
++	if (param_check_key(key))
++		return -EINVAL;
++	index = param_find(e, key);
++	if (index < 0) {
++		pr_err("%s: Internal error: Tried to delete index out of range\n",
++		       __func__);
++		return -EINVAL;
++	}
++
++	len = strlen(e->param[index]) + 1;
++	free(e->param[index]);
++	e->count--;
++	e->usage -= len;
++
++	// Shift all parameters up to fill the gap left by the removed param
++	while (index < e->count) {
++		e->param[index] = e->param[index + 1];
++		index++;
++	}
++	e->param[index] = NULL;
++	return 0;
++}
++
++int param_set(struct param *e, const char *key, const char *value)
++{
++	int index, len, old_len = 0;
++	char *p;
++	if (param_check_key(key) || param_check_data(value))
++		return -EINVAL;
++	len = strlen(key) + strlen(value) + 2;
++	index = param_find(e, key);
++	if (index >= 0) {
++		pr_debug("%s: Found string at %d -> %s\n", __func__, index, e->param[index]);
++		old_len = strlen(e->param[index]) + 1;
++	}
++	if ((e->usage + (len - old_len)) > e->size) {
++		pr_err("%s: Not enough free space\n", __func__);
++		return -ENOMEM;
++	}
++
++	if (index >= 0) {
++		free(e->param[index]);
++		e->usage -= old_len;
++	} else {
++		if (e->count < MAX_PARAMS)
++			index = e->count++;
++		else
++			return -ENOMEM;
++	}
++
++	p = malloc(len + 1);
++	strcpy(p, key);
++	strcat(p, "=");
++	strcat(p, value);
++
++	e->param[index] = p;
++	e->usage += len;
++	return 0;
++}
++
++const char *param_get(struct param *e, const char *key)
++{
++	char *sep;
++	int index;
++	if (param_check_key(key))
++		return ERR_PTR(-EINVAL);
++
++	index = param_find(e, key);
++	if (index < 0)
++		return ERR_PTR(-ENOENT);
++	sep = strchr(e->param[index], '=');
++	if (!sep)
++		return ERR_PTR(-EINVAL);
++	return sep+1;
++}
++
++int param_parse(struct param *e)
++{
++	int remain;
++	uint8_t *src;
++	uint8_t *p = (uint8_t *)(e->data);
++	uint32_t crc = (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | (p[0]);
++	uint32_t checksum = crc32(0, &p[4], e->size - 4);
++	if (crc != checksum) {
++		pr_warn("%s: Incorrect nvram checksum\n", __func__);
++		return -EINVAL;
++	} else {
++		pr_info("%s: CRC checksum correct (%08X)\n", __func__, crc);
++	}
++
++	src = &(e->data[4]);
++	remain = e->size - 4;
++	while (remain > 0) {
++		// Get parameter length (limit to end of buffer)
++		int len = strnlen((char *)src, remain);
++
++		// Done if no more strings or we see 0xFF
++		if (len == 0 || *src == 0xFF)
++			break;
++
++		// The last parameter does not have a trailing 0-terminator. Error?
++		if (len == remain) {
++			pr_err("%s: Invalid nvram data. Missing 0-termination on last parameter\n",
++			       __func__);
++			return -EINVAL;
++		}
++
++		// Add the parameter
++		pr_debug("%s:   Parsing '%s'\n", __func__, src);
++		e->param[e->count++] = strdup(src);
++		remain -= len + 1;
++		src += len + 1;
++	}
++
++	pr_debug("%s: Parsed %d parameters\n", __func__, e->count);
++
++	return 0;
++}
++
++int param_generate(struct param *e)
++{
++	unsigned char *dest = &(e->data[4]);
++	int remain = e->size - 4;
++	int count = e->count;
++	int i = 0;
++	uint8_t *p;
++	uint32_t checksum;
++
++	pr_debug("%s: About to generate %d parameters\n", __func__, count);
++
++	while (i < count) {
++		char *param = e->param[i];
++		int len = strlen(param);
++
++		pr_debug("%s:   Generating '%s'\n", __func__, param);
++
++		if (remain < len + 1) {
++			printf("%s: No space left in nvram to write parameters\n",
++			       __func__);
++			return -1;
++		}
++
++		// Copy key and data to buffer and set '=' as the separator between them
++		strcpy((char *)dest, param);
++		dest += len + 1;
++		remain -= len + 1;
++		i++;
++	}
++
++	// Erase remainder of buffer
++	while (remain-- > 0) {
++		*dest++ = 0xFF;
++	}
++
++	//
++	// Generate new CRC
++	//
++	p = (uint8_t *)(e->data);
++	checksum = crc32(0, &p[4], e->size - 4);
++	p[0] = checksum & 0xff;
++	p[1] = (checksum >> 8) & 0xff;
++	p[2] = (checksum >> 16) & 0xff;
++	p[3] = (checksum >> 24) & 0xff;
++
++	pr_debug("%s: Calculated new checksum (%08X)\n", __func__, checksum);
++
++	return 0;
++}
++
++int param_check_key(const char *key)
++{
++	int i, l = strlen(key);
++	if (l == 0)
++		return 1;
++
++	for (i = 0; i < l; i++) {
++		char c = key[i];
++		if (c >= '0' && c <= '9')
++			continue;
++		if (c >= 'A' && c <= 'Z')
++			continue;
++		if (c == '_' || c == '-')
++			continue;
++		return 1;
++	}
++	return 0;
++}
++
++int param_check_data(const char *data)
++{
++	int l = strlen(data);
++	int i;
++	for (i = 0; i < l; i++) {
++		char c = data[i];
++		if (c < ' ' || c >= 0x7F)
++			return 1;
++	}
++	return 0;
++}
+diff --git a/arch/arm/boards/dr-mxxf1/param.h b/arch/arm/boards/dr-mxxf1/param.h
+new file mode 100644
+index 000000000..e775738ec
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/param.h
+@@ -0,0 +1,32 @@
++#ifndef __PARAM_H__
++#define __PARAM_H__
++
++
++#define MAX_PARAMS 254
++
++struct param {
++
++    unsigned char *data;
++    unsigned char *orig;
++    int size;
++    int usage;
++
++    int count;
++    char *param[MAX_PARAMS];
++};
++
++
++int param_init(struct param *e, const char *from, int size);
++
++int param_find(struct param *e, const char *key);
++int param_delete(struct param *e, const char *key);
++int param_set(struct param *e, const char *key, const char *value);
++const char* param_get(struct param *e, const char *key);
++
++int param_parse(struct param *e);
++int param_generate(struct param *e);
++
++int param_check_key(const char *key);
++int param_check_data(const char *data);
++
++#endif  // PARAM_H
+diff --git a/arch/arm/boards/dr-mxxf1/vpd-eeprom.c b/arch/arm/boards/dr-mxxf1/vpd-eeprom.c
+new file mode 100644
+index 000000000..eb54c4ca5
+--- /dev/null
++++ b/arch/arm/boards/dr-mxxf1/vpd-eeprom.c
+@@ -0,0 +1,171 @@
++#include <common.h>
++#include <command.h>
++#include <environment.h>
++#include <i2c/i2c.h>
++#include <errno.h>
++#include <crc.h>
++#include "param.h"
++#include <malloc.h>
++#include <net.h>
++#define MXXF1_EEPROM_SIZE 2048
++static char eeprom_content[MXXF1_EEPROM_SIZE];
++
++static struct param ee;
++static int eeprom_ok = 0;
++static int vpd_valid = 0;
++static unsigned eeprom_addr = 0;
++
++static const char *eeprom_name = "/dev/eeprom0";
++
++static int mxxf1_eeprom_read(void)
++{
++	int res = 0;
++	struct cdev *eeprom_dev;
++	eeprom_ok = 0;
++	vpd_valid = 0;
++	eeprom_dev = cdev_open_by_name(eeprom_name, 0);
++	if (eeprom_dev == NULL) {
++		dev_err(eeprom_dev->dev, "Failed to open %s\n", eeprom_name);
++		return -ENODEV;
++	}
++	res = cdev_read(eeprom_dev, eeprom_content, MXXF1_EEPROM_SIZE, 0, 0);
++	if (res < 0) {
++		dev_err(eeprom_dev->dev, "Failed to read eeprom (%d)\n", res);
++		cdev_close(eeprom_dev);
++		return res;
++	}
++	cdev_close(eeprom_dev);
++	dev_info(eeprom_dev->dev, "Read %d bytes from eeprom\n", res);
++	param_init(&ee, eeprom_content, MXXF1_EEPROM_SIZE);
++	vpd_valid = param_parse(&ee) == 0 ? 1 : 0;
++	return 0;
++}
++
++static int mxxf1_eeprom_write(unsigned dev_addr, unsigned offset,
++			      uint8_t *buffer, unsigned cnt)
++{
++	int res = 0;
++	struct cdev *eeprom_dev;
++	eeprom_dev = cdev_open_by_name(eeprom_name, 0);
++	if (eeprom_dev == NULL) {
++		dev_err(eeprom_dev->dev, "Failed to open %s\n", eeprom_name);
++		return -ENODEV;
++	}
++	res = cdev_write(eeprom_dev, ee.data, MXXF1_EEPROM_SIZE, 0, 0);
++	if (res < 0) {
++		dev_err(eeprom_dev->dev, "Failed to write eeprom (%d)\n", res);
++		cdev_close(eeprom_dev);
++		return res;
++	}
++	cdev_close(eeprom_dev);
++	return 0;
++}
++
++static int vpd_update_eeprom(void)
++{
++	const char *vkey = "UBOOT_VERSION";
++	const char *val;
++	int status = 0;
++	int dirty = 0;
++	int index = param_find(&ee, vkey);
++	if (index >= 0) {
++		val = param_get(&ee, vkey);
++		if (IS_ERR_OR_NULL(val) || strcmp(val, release_string) != 0) {
++			pr_debug("%s: Update existing key %s\n", __func__, vkey);
++			status = param_set(&ee, vkey, release_string);
++			dirty = 1;
++		}
++	} else {
++		pr_debug("%s: No key %s present\n", __func__, vkey);
++		status = param_set(&ee, vkey, release_string);
++		dirty = 1;
++	}
++
++	if (status) {
++		pr_err("%s: Failed to set parameter (%d)\n", __func__, status);
++		return -EINVAL;
++	}
++	if (!dirty)
++		return 0;
++	/* Write out new version */
++	param_generate(&ee);
++	status = mxxf1_eeprom_write(eeprom_addr, 0, ee.data, ee.size);
++	if (status) {
++		pr_err("write eeprom error (%d)\n", status);
++		return status;
++	}
++	pr_info("%s: Validating VPD\n", __func__);
++	memset(eeprom_content, 0xff, 2048);
++	mxxf1_eeprom_read();
++	index = param_find(&ee, vkey);
++	if (index >= 0) {
++		val = param_get(&ee, vkey);
++		if (IS_ERR_OR_NULL(val) || strcmp(val, release_string) != 0) {
++			pr_err("EEPROM not updated (%d)\n", (int)PTR_ERR(val));
++			return (int)PTR_ERR(val);
++		}
++	} else {
++		pr_err("Key %s not found\n", vkey);
++		return -EIO;
++	}
++	return 0;
++}
++
++static int eeprom_set_mac(void)
++{
++	struct device_node *node;
++	const char *addr;
++	u8 mac[ETH_ALEN];
++
++	node = of_find_node_by_alias(of_get_root_node(), "ethernet0");
++	if (!node) {
++		pr_err("Cannot find FEC!\n");
++		return -ENODEV;
++	}
++
++	if (!of_device_is_available(node))
++		return 0;
++
++	addr = param_get(&ee, "FEC_MAC_ADDR");
++	if (IS_ERR_OR_NULL(addr)) {
++		pr_warn("No MAC address in eeprom (%ld)\n", PTR_ERR(addr));
++		return (int)PTR_ERR(addr);
++	} else {
++		dev_info(node->dev, "Got FEC MAC as %s\n", addr);
++		string_to_ethaddr(addr, mac);
++		if (!is_valid_ether_addr(mac)) {
++			dev_err(node->dev, "bad MAC addr: %s\n", addr);
++			return -EILSEQ;
++		}
++
++		of_eth_register_ethaddr(node, mac);
++	}
++	return 0;
++}
++
++static int eeprom_init(void)
++{
++	int res = mxxf1_eeprom_read();
++	if (res == 0)
++		res = eeprom_set_mac();
++	vpd_update_eeprom();
++	return res;
++}
++
++late_initcall(eeprom_init);
++
++static int do_vpd(int argc, char *argv[])
++{
++	int n;
++	if (!vpd_valid) {
++		printf("BAD EEPROM CRC\n");
++		return 0;
++	}
++	for (n = 0; n < ee.count; n++) {
++		printf("%s\n", ee.param[n]);
++	}
++	return 0;
++}
++
++BAREBOX_CMD_START(vpd).cmd = do_vpd,
++	BAREBOX_CMD_DESC("Show VPD data") BAREBOX_CMD_END
+diff --git a/arch/arm/configs/dr-mxxf1_defconfig b/arch/arm/configs/dr-mxxf1_defconfig
+new file mode 100644
+index 000000000..71dc62649
+--- /dev/null
++++ b/arch/arm/configs/dr-mxxf1_defconfig
+@@ -0,0 +1,181 @@
++CONFIG_ARCH_IMX=y
++CONFIG_IMX_MULTI_BOARDS=y
++CONFIG_MACH_DR_MXXF1=y
++CONFIG_DEFAULT_ENVIRONMENT_PATH="arch/arm/boards/dr-mxxf1/env"
++CONFIG_IMX_IIM_FUSE_BLOW=y
++CONFIG_THUMB2_BAREBOX=y
++CONFIG_ARM_OPTIMZED_STRING_FUNCTIONS=y
++CONFIG_ARM_UNWIND=y
++CONFIG_ARM_PSCI=y
++CONFIG_MMU=y
++CONFIG_MALLOC_SIZE=0x04000000
++CONFIG_MALLOC_TLSF=y
++CONFIG_KALLSYMS=y
++CONFIG_HUSH_FANCY_PROMPT=y
++CONFIG_CMDLINE_EDITING=y
++CONFIG_AUTO_COMPLETE=y
++CONFIG_MENU=y
++CONFIG_BOOTM_SHOW_TYPE=y
++CONFIG_BOOTM_VERBOSE=y
++CONFIG_BOOTM_INITRD=y
++CONFIG_BOOTM_OFTREE=y
++CONFIG_BOOTM_OFTREE_UIMAGE=y
++CONFIG_BLSPEC=y
++CONFIG_CONSOLE_ACTIVATE_NONE=y
++CONFIG_PARTITION_DISK_EFI=y
++CONFIG_PARTITION_DISK_DOS=y
++CONFIG_DEFAULT_ENVIRONMENT_GENERIC_NEW=y
++CONFIG_STATE=y
++CONFIG_BOOTCHOOSER=y
++CONFIG_RESET_SOURCE=y
++CONFIG_RESET_IMX_SRC=y
++CONFIG_FASTBOOT_CMD_OEM=y
++CONFIG_CMD_DMESG=y
++CONFIG_LONGHELP=y
++CONFIG_CMD_IOMEM=y
++CONFIG_CMD_IMD=y
++CONFIG_CMD_MEMINFO=y
++CONFIG_CMD_ARM_MMUINFO=y
++CONFIG_CMD_REGULATOR=y
++CONFIG_CMD_MMC_EXTCSD=y
++# CONFIG_CMD_BOOTU is not set
++CONFIG_CMD_GO=y
++CONFIG_CMD_RESET=y
++CONFIG_CMD_UIMAGE=y
++CONFIG_CMD_PARTITION=y
++CONFIG_CMD_UBIFORMAT=y
++CONFIG_CMD_EXPORT=y
++CONFIG_CMD_LOADENV=y
++CONFIG_CMD_PRINTENV=y
++CONFIG_CMD_MAGICVAR=y
++CONFIG_CMD_MAGICVAR_HELP=y
++CONFIG_CMD_SAVEENV=y
++CONFIG_CMD_FILETYPE=y
++CONFIG_CMD_LN=y
++CONFIG_CMD_MD5SUM=y
++CONFIG_CMD_UNCOMPRESS=y
++CONFIG_CMD_LET=y
++CONFIG_CMD_MSLEEP=y
++CONFIG_CMD_READF=y
++CONFIG_CMD_SLEEP=y
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_MIITOOL=y
++CONFIG_CMD_PING=y
++CONFIG_CMD_TFTP=y
++CONFIG_CMD_ECHO_E=y
++CONFIG_CMD_EDIT=y
++CONFIG_CMD_MENU=y
++CONFIG_CMD_MENU_MANAGEMENT=y
++CONFIG_CMD_MENUTREE=y
++CONFIG_CMD_SPLASH=y
++CONFIG_CMD_READLINE=y
++CONFIG_CMD_TIMEOUT=y
++CONFIG_CMD_CRC=y
++CONFIG_CMD_CRC_CMP=y
++CONFIG_CMD_MEMTEST=y
++CONFIG_CMD_MM=y
++CONFIG_CMD_CLK=y
++CONFIG_CMD_DETECT=y
++CONFIG_CMD_FLASH=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_LED=y
++CONFIG_CMD_NANDTEST=y
++CONFIG_CMD_SPI=y
++CONFIG_CMD_LED_TRIGGER=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_BAREBOX_UPDATE=y
++CONFIG_CMD_OF_NODE=y
++CONFIG_CMD_OF_PROPERTY=y
++CONFIG_CMD_OF_DISPLAY_TIMINGS=y
++CONFIG_CMD_OF_FIXUP_STATUS=y
++CONFIG_CMD_OF_OVERLAY=y
++CONFIG_CMD_OFTREE=y
++CONFIG_CMD_TIME=y
++CONFIG_CMD_STATE=y
++CONFIG_CMD_BOOTCHOOSER=y
++CONFIG_CMD_WD=y
++CONFIG_CMD_DEVINFO=y
++CONFIG_NET=y
++CONFIG_NET_NETCONSOLE=y
++CONFIG_OF_BAREBOX_DRIVERS=y
++CONFIG_DRIVER_NET_FEC_IMX=y
++CONFIG_AT803X_PHY=y
++CONFIG_MICREL_PHY=y
++CONFIG_MTD=y
++CONFIG_MTD_RAW_DEVICE=y
++CONFIG_MTD_DATAFLASH=y
++CONFIG_MTD_M25P80=y
++CONFIG_MTD_SST25L=y
++CONFIG_MTD_SPI_NOR=y
++CONFIG_MTD_WRITE=y
++CONFIG_DISK_AHCI=y
++CONFIG_DISK_AHCI_IMX=y
++CONFIG_DISK_INTF_PLATFORM_IDE=y
++CONFIG_DISK_PATA_IMX=y
++CONFIG_USB_HOST=y
++CONFIG_GENERIC_PHY=y
++CONFIG_USB_IMX_CHIPIDEA=y
++CONFIG_USB_EHCI=y
++CONFIG_USB_ULPI=y
++CONFIG_USB_STORAGE=y
++CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_DFU=y
++CONFIG_USB_GADGET_SERIAL=y
++CONFIG_USB_GADGET_FASTBOOT=y
++CONFIG_KEYBOARD_USB=y
++CONFIG_INPUT=Y
++CONFIG_KEYBOARD_GPIO=y
++CONFIG_VIDEO=y
++CONFIG_DRIVER_VIDEO_IMX_IPUV3=y
++CONFIG_DRIVER_VIDEO_IMX_IPUV3_LVDS=y
++CONFIG_DRIVER_VIDEO_SIMPLE_PANEL=y
++CONFIG_DRIVER_VIDEO_SIMPLEFB=y
++CONFIG_DRIVER_VIDEO_BACKLIGHT_PWM=y
++CONFIG_DRIVER_VIDEO_BACKLIGHT=y
++CONFIG_DRIVER_SPI_IMX=y
++CONFIG_MCI=y
++CONFIG_MCI_MMC_BOOT_PARTITIONS=y
++CONFIG_MCI_IMX_ESDHC=y
++CONFIG_MFD_DA9063=y
++CONFIG_MFD_MC34704=y
++CONFIG_MFD_MC9SDZ60=y
++CONFIG_MFD_STMPE=y
++CONFIG_STATE_DRV=y
++CONFIG_LED=y
++CONFIG_LED_GPIO=y
++CONFIG_LED_GPIO_OF=y
++CONFIG_LED_TRIGGERS=y
++CONFIG_EEPROM_AT24=y
++CONFIG_KEYBOARD_GPIO=y
++CONFIG_WATCHDOG=y
++CONFIG_WATCHDOG_IMX=y
++CONFIG_PWM=y
++CONFIG_PWM_IMX=y
++CONFIG_IMX_OCOTP_WRITE=y
++CONFIG_MXS_APBH_DMA=y
++CONFIG_GPIO_STMPE=y
++CONFIG_REGULATOR=y
++CONFIG_REGULATOR_FIXED=y
++CONFIG_REGULATOR_PFUZE=y
++CONFIG_REGULATOR_ANATOP=y
++CONFIG_USB_NOP_XCEIV=y
++CONFIG_FS_EXT4=y
++CONFIG_FS_TFTP=y
++CONFIG_FS_NFS=y
++CONFIG_FS_FAT=y
++CONFIG_FS_FAT_WRITE=y
++CONFIG_FS_FAT_LFN=y
++CONFIG_FS_UBIFS=y
++CONFIG_FS_UBIFS_COMPRESSION_LZO=y
++CONFIG_PNG=y
++CONFIG_USB_HUB_USB251XB=y
++CONFIG_FRAMEBUFFER_CONSOLE=y
++CONFIG_CMD_FBTEST=y
++CONFIG_DEBUG_LL=y
++CONFIG_NVMEM=y
++CONFIG_CMD_NVMEM=y
++CONFIG_IMX_OCOTP=y
++CONFIG_FONTS=y
++CONFIG_FONT_8x8=y
++CONFIG_FONT_8x16=y
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 925ac12aa..55702f618 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -193,4 +193,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
+ lwl-$(CONFIG_MACH_ZEDBOARD) += zynq-zed.dtb.o
+ lwl-$(CONFIG_MACH_MNT_REFORM) += imx8mq-mnt-reform2.dtb.o
+ 
++lwl-$(CONFIG_MACH_DR_MXXF1) += mxxf1-hw4.dtb.o mxxf1.dtb.o
+ clean-files := *.dtb *.dtb.S .*.dtc .*.pre .*.dts *.dtb.lzo
+diff --git a/arch/arm/dts/mxxf1-common.dtsi b/arch/arm/dts/mxxf1-common.dtsi
+new file mode 100644
+index 000000000..905cfb60e
+--- /dev/null
++++ b/arch/arm/dts/mxxf1-common.dtsi
+@@ -0,0 +1,920 @@
++/*
++ * Copyright DATA RESPONS AS
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	aliases {
++		mmc0 = &usdhc3;
++		mmc1 = &usdhc4;
++		rtc0 = &main_rtc;
++		ethernet0 = &fec;
++		state = &state_nor;
++	};
++
++	memory {
++		reg = <0x10000000 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = &uart1;
++
++		environment-spinor {
++			compatible = "barebox,environment";
++			device-path = &boot_env;
++			status = "okay";
++		};
++	};
++
++	/* State: mutable part */
++	state_nor: state {
++		magic = <0x512890a0>;
++		compatible = "barebox,state";
++		backend-type = "raw";
++		backend = <&state_storage>;
++		backend-stridesize = <0x40>;
++		backend-storage-type = "circular";
++
++		bootstate {
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			system0 { /* the node's name here must match the subnode's name in the 'bootstate' node */
++				#address-cells = <1>;
++				#size-cells = <1>;
++
++				remaining_attempts@0 {
++					reg = <0x0 0x4>;
++					type = "uint32";
++					default = <3>;
++				};
++				priority@4 {
++					reg = <0x4 0x4>;
++					type = "uint32";
++					default = <30>;
++				};
++			};
++
++			system1 { /* the node's name here must match the subnode's name in the 'bootstate' node */
++				#address-cells = <1>;
++				#size-cells = <1>;
++
++				remaining_attempts@8 {
++					reg = <0x8 0x4>;
++					type = "uint32";
++					default = <3>;
++				};
++				priority@C {
++					reg = <0xC 0x4>;
++					type = "uint32";
++					default = <20>;
++				};
++			};
++
++			last_chosen@10 {
++				reg = <0x10 0x4>;
++				type = "uint32";
++			};
++		};
++	};
++
++	backlight_lcd: backlight_lcd  {
++		compatible = "pwm-backlight";
++		pwms = <&pwm1 0 500000 0>;
++		brightness-levels = < 0 1 2 3 4 5 6 8  11 16  23  32 48
++							  64 81 100 121 144 169 196 225
++							  256 289 324 361 400 441 484 529
++							  576 625 676 729 784 841 900 961
++							  1024 1089 1156 1225 1296 1369 1444 1521
++							  1600 1681 1764 1849 1936 2025 2116 2209 >;
++		default-brightness-level = <32>;
++		enable-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
++		power-supply = <&reg_5v>;
++		status = "okay";
++	};
++
++	panel {
++		compatible = "simple-panel";
++		status = "okay";
++		backlight = <&backlight_lcd>;
++		enable-gpios = <&gpio6 15 GPIO_ACTIVE_HIGH>;
++		enable-delay = <100>;
++
++		port {
++			panel_in: endpoint {
++				remote-endpoint = <&lvds0_out>;
++			};
++		};
++
++		display-timings {
++			native-mode = <&timing0>;
++			timing0: 1024x768-cvt {
++				clock-frequency = <65000000>;
++				hactive = <1024>;
++				vactive = <768>;
++
++				hfront-porch = <48>;
++				hsync-len = <40>;
++				hback-porch = <152>;
++
++				vfront-porch = <3>;
++				vsync-len = <30>;
++				vback-porch = <10>;
++
++				hsync-active = <0>;
++				vsync-active = <0>;
++				de-active = <1>;
++				pixelclk-active = <1>;
++			};
++		};
++	};
++
++	regulators {
++		compatible = "simple-bus";
++
++		reg_usb_otg_vbus: usb_otg_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_otg_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio3 22 0>;
++			enable-active-high;
++		};
++
++		reg_usb_h1_vbus: usb_h1_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_h1_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio1 29 0>;
++			enable-active-high;
++		};
++		reg_usb_p0_vbus: usb_p0_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_p0_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio3 28 0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++		reg_usb_p1_vbus: usb_p1_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_p1_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio2 3 0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++		reg_usb_p2_vbus: usb_p2_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_p2_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio2 7 0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++		reg_usb_p3_vbus: usb_p3_vbus {
++			compatible = "regulator-fixed";
++			regulator-name = "usb_p3_vbus";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio6 9 0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++		reg_5v: ext_5v {
++			compatible = "regulator-fixed";
++			regulator-name = "5V";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			gpio = <&gpio6 10 0>;
++			enable-active-high;
++			regulator-boot-on;
++			regulator-always-on;
++		};
++
++		reg_touch: touch_pwr {
++			compatible = "regulator-fixed";
++			regulator-name = "TOUCH";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++			gpio = <&gpio1 4 0>;
++			enable-active-high;
++			regulator-always-on;
++		};
++
++	};
++
++	pwm-buzzer {
++		compatible = "pwm-buzzer";
++		pwms = <&pwm3 0 434782>;
++		status = "okay";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		power {
++			label = "Power Button";
++			gpios = <&gpio3 29 1>;
++			linux,code = <KEY_POWER>; /* KEY_POWER */
++			gpio-key,wakeup;
++		};
++
++		dimm-up {
++			label = "Brightness Up";
++			gpios = <&gpio4 7 1>;
++			linux,code = <KEY_BRIGHTNESSUP>; /* KEY_BRIGHTNESSUP */
++		};
++
++		dimm-down {
++			label = "Brightness Down";
++			gpios = <&gpio4 6 1>;
++			linux,code = <KEY_BRIGHTNESSDOWN>; /* KEY_BRIGHTNESSDOWN */
++		};
++	};
++
++/*
++	user-gpios {
++		gpio-lan2-eewp {
++			gpios = <&gpio6 14 GPIO_ACTIVE_LOW>;
++			status = "okay";
++			value = <0>;
++		};
++
++		gpio-eeprom-wp {
++			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
++			status = "okay";
++			value = <0>;
++		};
++
++		gpio-spinor-wp {
++			gpios = <&gpio6 11 GPIO_ACTIVE_LOW>;
++			status = "okay";
++			value = <1>;
++		};
++
++		gpio-fan {
++			gpios = <&gpio1 18 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++			value = <0>;
++		};
++
++		gpio-ext-buzz {
++			gpios = <&gpio1 19 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++			value = <0>;
++		};
++
++		gpio-phy-rst {
++			gpios = <&gpio1 25 GPIO_ACTIVE_LOW>;
++			status = "okay";
++			value = <1>;
++		};
++		gpio-hw0 {
++			gpios = <&gpio1 15 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++		};
++
++		gpio-hw1 {
++			gpios = <&gpio1 14 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++		};
++
++		gpio-hw2 {
++			gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++		};
++
++		gpio-hw3 {
++			gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
++			status = "okay";
++		};
++
++		gpio-lan2-off {
++		gpios = <&gpio3 23 GPIO_ACTIVE_LOW>;
++		value = <1>;
++		status = "okay";
++		};
++
++	};
++*/
++};
++
++
++&gpio1 {
++	gpio-line-names = "", "", "", "", "", "eeprom-wp", "", "",
++		"", "", "", "", "hwrev3", "hwrev2", "hwrev1", "hwrev0",
++		"", "", "fan", "buzzer";
++};
++
++&gpio3 {
++	lan2_off {
++		gpio-hog;
++		gpios = <23 0>;
++		output-high;
++	};
++};
++
++&gpio6 {
++	gpio-line-names = "", "", "", "", "", "", "", "",
++		"", "", "", "spiflash-wp", "", "", "lan2-wp";
++	lan2_wp {
++		gpio-hog;
++		gpios = <14 0>;
++		output-high;
++	};
++};
++
++&gpio7 {
++	gpio-line-names = "", "", "", "", "", "", "", "",
++		"", "", "", "lvds-rotate", "", "", "";
++	lvds_rotate {
++		gpio-hog;
++		gpios = <11 0>;
++		output-low;
++	};
++};
++
++&ecspi1 {
++	fsl,spi-num-chipselects = <1>;
++	cs-gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi1>;
++	status = "okay";
++	nodma;
++
++	norflash: m25p80@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		spi-max-frequency = <20000000>;
++		reg = <0>;
++		use-large-blocks;
++	};
++};
++
++&norflash {
++	partitions {
++		compatible = "fixed-partitions";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		bootloader: partition@0 {
++			label = "bootloader";
++			reg = <0 0x00100000>;
++		};
++		boot_env: partition@00100000 {
++			label = "boot-env";
++			reg = <0x00100000 0x40000>;
++		};
++		user: partition@00140000 {
++			label = "factory";
++			reg = <0x00140000 0x280000>;
++		};
++		state_storage: partition@003C0000 {
++			label = "barebox-state";
++			reg = <0x003C0000 0x40000>;
++		};
++	};
++};
++
++&wdog1 {
++	status = "okay";
++};
++
++&wdog2 {
++	status = "disabled";
++	fsl,ext-reset-output;
++
++};
++
++&i2c2 {
++	clock-frequency = <100000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c2>;
++	status = "okay";
++
++		pmic: pfuze100@8 {
++		compatible = "fsl,pfuze100";
++		reg = <0x08>;
++
++		regulators {
++			sw1a_reg: sw1ab {
++				regulator-min-microvolt = <300000>;
++				regulator-max-microvolt = <1875000>;
++				regulator-boot-on;
++				regulator-always-on;
++				regulator-ramp-delay = <6250>;
++			};
++
++			sw1c_reg: sw1c {
++				regulator-min-microvolt = <300000>;
++				regulator-max-microvolt = <1875000>;
++				regulator-boot-on;
++				regulator-always-on;
++				regulator-ramp-delay = <6250>;
++			};
++
++			sw2_reg: sw2 {
++				regulator-min-microvolt = <800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			sw3a_reg: sw3a {
++				regulator-min-microvolt = <400000>;
++				regulator-max-microvolt = <1975000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			sw3b_reg: sw3b {
++				regulator-min-microvolt = <400000>;
++				regulator-max-microvolt = <1975000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			sw4_reg: sw4 {
++				regulator-min-microvolt = <800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			swbst_reg: swbst {
++				regulator-min-microvolt = <5000000>;
++				regulator-max-microvolt = <5150000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			snvs_reg: vsnvs {
++				regulator-min-microvolt = <1000000>;
++				regulator-max-microvolt = <3000000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			vref_reg: vrefddr {
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			vgen1_reg: vgen1 {
++				regulator-min-microvolt = <800000>;
++				regulator-max-microvolt = <1550000>;
++			};
++
++			vgen2_reg: vgen2 {
++				regulator-min-microvolt = <800000>;
++				regulator-max-microvolt = <1550000>;
++			};
++
++			vgen3_reg: vgen3 {
++				regulator-min-microvolt = <2500000>;
++				regulator-max-microvolt = <2500000>;
++			};
++
++			vgen4_reg: vgen4 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen5_reg: vgen5 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen6_reg: vgen6 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++		};
++	};
++
++	eeprom@50 {
++		compatible = "atmel,24c16";
++		reg = <0x50>;
++		pagesize = <16>;
++		wp-gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
++	};
++
++};
++
++&i2c1 {
++	status = "disabled";
++};
++
++&iomuxc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog_1>;
++
++	hog {
++		pinctrl_hog_1: hoggrp-1 {
++			fsl,pins = <
++				MX6QDL_PAD_NANDF_CS0__GPIO6_IO11 0x20
++				MX6QDL_PAD_NANDF_CS1__GPIO6_IO14 0x1b0b0
++				MX6QDL_PAD_NANDF_CS2__GPIO6_IO15 0x20
++				MX6QDL_PAD_NANDF_CS3__GPIO6_IO16 0xb021
++				MX6QDL_PAD_NANDF_ALE__GPIO6_IO08 0x1b0b0
++				MX6QDL_PAD_NANDF_CLE__GPIO6_IO07 0xb060
++				MX6QDL_PAD_NANDF_WP_B__GPIO6_IO09 0x20
++				MX6QDL_PAD_NANDF_RB0__GPIO6_IO10 0x20		/* USBP3_EN, ext 4k7 PD */
++				MX6QDL_PAD_NANDF_D0__GPIO2_IO00 0x1b000
++				MX6QDL_PAD_NANDF_D1__GPIO2_IO01 0x1b000
++				MX6QDL_PAD_NANDF_D2__GPIO2_IO02 0x1b000		/* USBP1_OC (active low) */
++				MX6QDL_PAD_NANDF_D3__GPIO2_IO03 0x20		/* USBP1_EN, ext 4k7 PD */
++				MX6QDL_PAD_NANDF_D4__GPIO2_IO04 0x1b0b0
++				MX6QDL_PAD_NANDF_D5__GPIO2_IO05 0xB060
++				MX6QDL_PAD_NANDF_D6__GPIO2_IO06 0x1B000
++				MX6QDL_PAD_NANDF_D7__GPIO2_IO07 0x20		/* USBP2_EN, ext 4k7 PD */
++
++				MX6QDL_PAD_GPIO_0__CCM_CLKO1    0x130b0
++				MX6QDL_PAD_GPIO_1__WDOG2_B      0x1b000
++				MX6QDL_PAD_GPIO_2__GPIO1_IO02   0x20
++				MX6QDL_PAD_GPIO_4__GPIO1_IO04   0x20
++				MX6QDL_PAD_GPIO_5__GPIO1_IO05   0x20
++				MX6QDL_PAD_GPIO_16__GPIO7_IO11	0x20
++				MX6QDL_PAD_SD1_CMD__GPIO1_IO18  0x20
++				MX6QDL_PAD_SD1_DAT2__GPIO1_IO19 0x20
++
++				MX6QDL_PAD_ENET_RXD0__GPIO1_IO27 0x1b000
++				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29 0x20		/* USB_H1_PWR_EN, ext 4k7 PD */
++
++				MX6QDL_PAD_EIM_D26__GPIO3_IO26  0x1b0b0
++				MX6QDL_PAD_EIM_CS1__GPIO2_IO24  0x1b0b0
++				MX6QDL_PAD_EIM_A25__GPIO5_IO02  0x1b0b0
++				MX6QDL_PAD_EIM_D28__GPIO3_IO28  0x3		/* USBP0_EN, ext 4k7 PD */
++				MX6QDL_PAD_EIM_D29__GPIO3_IO29  0x1b0b0
++				MX6QDL_PAD_EIM_D30__USB_H1_OC	0x1b0b0	/* USB H1 OC */
++				MX6QDL_PAD_EIM_D31__GPIO3_IO31	0x1b0b0	/* USB P0 OC */
++				MX6QDL_PAD_EIM_EB3__GPIO2_IO31  0x1b0b0
++				MX6QDL_PAD_EIM_DA9__GPIO3_IO09  0x1b0b0
++
++				MX6QDL_PAD_SD3_RST__GPIO7_IO08  0x1b0b0
++
++				MX6QDL_PAD_CSI0_DATA_EN__GPIO5_IO20 0x1b0b0
++				MX6QDL_PAD_EIM_D30__USB_H1_OC 	0x1b0b0
++				MX6QDL_PAD_SD2_DAT0__GPIO1_IO15 0x13000
++				MX6QDL_PAD_SD2_DAT1__GPIO1_IO14 0x13000
++				MX6QDL_PAD_SD2_DAT2__GPIO1_IO13 0x13000
++				MX6QDL_PAD_SD2_DAT3__GPIO1_IO12 0x130010
++
++				MX6QDL_PAD_KEY_COL0__GPIO4_IO06 0x1b0b0
++				MX6QDL_PAD_KEY_ROW0__GPIO4_IO07 0x1b0b0
++				MX6QDL_PAD_KEY_ROW1__GPIO4_IO09 0x7061
++			>;
++		};
++	};
++
++	pcie {
++		pinctrl_pcie: pciegrp {
++			fsl,pins = <
++				MX6QDL_PAD_GPIO_17__GPIO7_IO12	0x1b0b0
++				MX6QDL_PAD_EIM_D23__GPIO3_IO23  0x1b0b0
++			>;
++		};
++	};
++
++	ecspi1 {
++		pinctrl_ecspi1: ecspi1grp {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_D17__ECSPI1_MISO	0x100b1
++				MX6QDL_PAD_EIM_D18__ECSPI1_MOSI	0x100b1
++				MX6QDL_PAD_EIM_D16__ECSPI1_SCLK	0x100b1
++				MX6QDL_PAD_EIM_D19__GPIO3_IO19	0x100b1
++			>;
++		};
++	};
++
++	ecspi2 {
++		pinctrl_ecspi2: ecspi2grp {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_OE__ECSPI2_MISO	0x100b1
++				MX6QDL_PAD_EIM_CS1__ECSPI2_MOSI	0x100b1
++				MX6QDL_PAD_EIM_CS0__ECSPI2_SCLK	0x100b1
++				MX6QDL_PAD_DISP0_DAT18__GPIO5_IO12	0x100b1
++			>;
++		};
++	};
++
++	uart1 {
++		pinctrl_uart1: uart1grp {
++			fsl,pins = <
++				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA	0x1b0b1
++				MX6QDL_PAD_CSI0_DAT11__UART1_RX_DATA	0x1b0b1
++			>;
++		};
++	};
++
++	uart2 {
++		pinctrl_uart2: uart2grp {
++			fsl,pins = <
++				MX6QDL_PAD_GPIO_7__UART2_TX_DATA	0x1b0b1
++				MX6QDL_PAD_GPIO_8__UART2_RX_DATA	0x1b0b1
++			>;
++		};
++	};
++
++	uart3 {
++		pinctrl_uart3: uart3grp {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_D24__UART3_TX_DATA	0x1b0b1
++				MX6QDL_PAD_EIM_D25__UART3_RX_DATA	0x1b0b1
++			>;
++		};
++	};
++
++	uart4 {
++		pinctrl_uart4: uart4grp {
++			fsl,pins = <
++				MX6QDL_PAD_KEY_COL0__UART4_TX_DATA	0x1b0b1
++				MX6QDL_PAD_KEY_ROW0__UART4_RX_DATA	0x1b0b1
++			>;
++		};
++	};
++
++	pwm1 {
++		pinctrl_pwm1: pwm1grp {
++			fsl,pins = <
++				MX6QDL_PAD_GPIO_9__PWM1_OUT		0x1b0b1
++			>;
++		};
++	};
++
++	pwm3 {
++		pinctrl_pwm3: pwm3grp {
++			fsl,pins = <
++				MX6QDL_PAD_SD1_DAT1__PWM3_OUT 0x1b0b1
++			>;
++		};
++	};
++
++	i2c2 {
++		pinctrl_i2c2: i2c2grp {
++			fsl,pins = <
++				MX6QDL_PAD_KEY_COL3__I2C2_SCL       0x4001b8b1
++				MX6QDL_PAD_KEY_ROW3__I2C2_SDA       0x4001b8b1
++			 >;
++		};
++	};
++
++	i2c3 {
++		pinctrl_i2c3: i2c3grp {
++			fsl,pins = <
++				MX6QDL_PAD_GPIO_3__I2C3_SCL 0x4001b8b1
++				MX6QDL_PAD_GPIO_6__I2C3_SDA 0x4001b8b1
++			>;
++		};
++	};
++
++	usbotg {
++		pinctrl_usbotg_lm: usbotggrp-lm {
++			fsl,pins = <
++				MX6QDL_PAD_ENET_RX_ER__USB_OTG_ID 	0x17059
++				MX6QDL_PAD_EIM_D21__USB_OTG_OC		0x17059
++				MX6QDL_PAD_EIM_D22__USB_OTG_PWR		0x20 	/* OTG_EN, ext 4k7 PD */
++			>;
++		};
++	};
++
++	usdhc3 {
++		pinctrl_usdhc3: usdhc3grp {
++			fsl,pins = <
++				MX6QDL_PAD_SD3_CMD__SD3_CMD			0x17059
++				MX6QDL_PAD_SD3_CLK__SD3_CLK			0x10059
++				MX6QDL_PAD_SD3_DAT0__SD3_DATA0		0x17059
++				MX6QDL_PAD_SD3_DAT1__SD3_DATA1		0x17059
++				MX6QDL_PAD_SD3_DAT2__SD3_DATA2		0x17059
++				MX6QDL_PAD_SD3_DAT3__SD3_DATA3		0x17059
++
++			>;
++		};
++	};
++
++	usdhc4 {
++		pinctrl_usdhc4: usdhc4grp {
++			fsl,pins = <
++				MX6QDL_PAD_SD4_CMD__SD4_CMD			0x17059
++				MX6QDL_PAD_SD4_CLK__SD4_CLK			0x10059
++				MX6QDL_PAD_SD4_DAT0__SD4_DATA0		0x17059
++				MX6QDL_PAD_SD4_DAT1__SD4_DATA1		0x17059
++				MX6QDL_PAD_SD4_DAT2__SD4_DATA2		0x17059
++				MX6QDL_PAD_SD4_DAT3__SD4_DATA3		0x17059
++				MX6QDL_PAD_SD4_DAT4__SD4_DATA4      0x17059
++				MX6QDL_PAD_SD4_DAT5__SD4_DATA5      0x17059
++				MX6QDL_PAD_SD4_DAT6__SD4_DATA6      0x17059
++				MX6QDL_PAD_SD4_DAT7__SD4_DATA7      0x17059
++			>;
++		};
++	};
++
++	enet {
++		pinctrl_enet_lm: enetgrp-lm2 {
++			fsl,pins = <
++				MX6QDL_PAD_ENET_CRS_DV__GPIO1_IO25    0x1b0b0	/* Phy reset (low) */
++				MX6QDL_PAD_ENET_RXD1__GPIO1_IO26 	  0x1b0b0   /* Phy IRQ (low) */
++				MX6QDL_PAD_ENET_MDIO__ENET_MDIO       0x1b0b0
++				MX6QDL_PAD_ENET_MDC__ENET_MDC         0x1b0b0
++				MX6QDL_PAD_RGMII_TXC__RGMII_TXC       0x1b0b0
++				MX6QDL_PAD_RGMII_TD0__RGMII_TD0       0x1b0b0
++				MX6QDL_PAD_RGMII_TD1__RGMII_TD1       0x1b0b0
++				MX6QDL_PAD_RGMII_TD2__RGMII_TD2       0x1b0b0
++				MX6QDL_PAD_RGMII_TD3__RGMII_TD3       0x1b0b0
++				MX6QDL_PAD_RGMII_TX_CTL__RGMII_TX_CTL 0x1b0b0
++				MX6QDL_PAD_ENET_REF_CLK__ENET_TX_CLK  0x4001b0a8
++				MX6QDL_PAD_RGMII_RXC__RGMII_RXC       0x1b0b0
++				MX6QDL_PAD_RGMII_RD0__RGMII_RD0       0x1b0b0
++				MX6QDL_PAD_RGMII_RD1__RGMII_RD1       0x1b0b0
++				MX6QDL_PAD_RGMII_RD2__RGMII_RD2       0x1b0b0
++				MX6QDL_PAD_RGMII_RD3__RGMII_RD3       0x1b0b0
++				MX6QDL_PAD_RGMII_RX_CTL__RGMII_RX_CTL 0x1b0b0
++				MX6QDL_PAD_ENET_TX_EN__GPIO1_IO28     0x1b0b0
++			>;
++		};
++	};
++
++	can1 {
++		pinctrl_flexcan1: flexcan1grp {
++			fsl,pins = <
++				MX6QDL_PAD_GPIO_8__FLEXCAN1_RX    0x1b0b0
++				MX6QDL_PAD_GPIO_7__FLEXCAN1_TX    0x1b0b0
++			>;
++		};
++	};
++
++	can2 {
++		pinctrl_flexcan2: flexcan2grp {
++			fsl,pins = <
++				MX6QDL_PAD_KEY_COL4__FLEXCAN2_TX    0x1b0b0
++				MX6QDL_PAD_KEY_ROW4__FLEXCAN2_RX    0x1b0b0
++			>;
++		};
++	};
++};
++
++&ipu1{
++	status = "okay";
++};
++
++&ipu2{
++	status = "okay";
++};
++
++&hdmi {
++	status = "disabled";
++};
++
++&ldb {
++	status = "okay";
++
++	lvds-channel@0 {
++		status = "okay";
++		fsl,data-width = <24>;
++		fsl,data-mapping = "spwg";
++
++		port@4 {
++			reg = <4>;
++			lvds0_out: endpoint {
++				remote-endpoint = <&panel_in>;
++			};
++		};
++	};
++};
++
++&clks {
++	assigned-clocks = <&clks IMX6QDL_CLK_LDB_DI0_SEL>,
++		<&clks IMX6QDL_CLK_LDB_DI1_SEL>;
++	assigned-clock-parents = <&clks IMX6QDL_CLK_PLL5_VIDEO_DIV>,
++		<&clks IMX6QDL_CLK_PLL5_VIDEO_DIV>;
++};
++
++&pcie {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pcie>;
++	reset-gpio = <&gpio7 12 GPIO_ACTIVE_LOW>;
++	status = "okay";
++	vph-supply = <&vgen3_reg>;
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1>;
++	status = "okay";
++};
++
++&usbh1 {
++	vbus-supply = <&reg_usb_h1_vbus>;
++	status = "okay";
++	over-current-active-low;
++};
++
++&usbotg {
++	vbus-supply = <&reg_usb_otg_vbus>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usbotg_lm>;
++	over-current-active-low;
++	status = "okay";
++};
++
++&usdhc2 {
++	status = "disabled";
++};
++
++&usdhc3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usdhc3>;
++	cd-gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
++	wp-gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
++	bus-width = <4>;
++	no-1-8-v;
++	keep-power-in-suspend;
++	enable-sdio-wakeup;
++	status = "okay";
++};
++
++&usdhc4 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usdhc4>;
++	bus-width = <8>;
++	non-removable;
++	no-1-8-v;
++	keep-power-in-suspend;
++	status = "okay";
++};
++
++&can1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan1>;
++	status = "okay";
++};
++
++&can2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan2>;
++	status = "okay";
++};
++
++&sata {
++	status = "okay";
++};
++
++&pwm3 {
++	#pwm-cells = <2>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pwm3>;
++	status = "okay";
++};
++
++&snvs_poweroff {
++	status = "okay";
++};
++
++&usbphy1 {
++	tx-d-cal = <0x5>;
++	status = "okay";
++};
++
++&usbphy2 {
++	tx-d-cal = <0x5>;
++	status = "okay";
++};
++
++&pwm1 {
++	#pwm-cells = <2>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pwm1>;
++	status = "okay";
++};
++
++&ocotp {
++	status = "okay";
++};
++
++&tempmon {
++	status = "okay";
++};
+diff --git a/arch/arm/dts/mxxf1-hw4.dts b/arch/arm/dts/mxxf1-hw4.dts
+new file mode 100644
+index 000000000..9f36ea84b
+--- /dev/null
++++ b/arch/arm/dts/mxxf1-hw4.dts
+@@ -0,0 +1,82 @@
++/*
++ * Copyright 2015 DATA RESPONS AS
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/dts-v1/;
++
++#include <arm/imx6q.dtsi>
++#include "imx6q.dtsi"
++#include "mxxf1-common.dtsi"
++
++/ {
++    model = "DR-MXXF1";
++    compatible = "datarespons,mxxf1-hw4";
++};
++
++&i2c3 {
++    clock-frequency = <100000>;
++    pinctrl-names = "default";
++    pinctrl-0 = <&pinctrl_i2c3>;
++    status = "okay";
++
++    egalax_ts@2a {
++        compatible = "eeti,egalax_i2c";
++        reg = <0x2a>;
++        interrupt-parent = <&gpio6>;
++        interrupts = <8 IRQ_TYPE_LEVEL_LOW>;
++        int-gpios = <&gpio6 8 0>;
++        disable-suspend = <1>;
++        };
++
++    main_rtc: rtc@68 {
++        compatible = "stm,m41t82";
++        reg = <0x68>;
++        };
++
++    adc7417@28 {
++        compatible = "adi,ad7417";
++        reg = <0x28>;
++        };
++};
++
++&fec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_enet_lm>;
++	phy-mode = "rgmii";
++	status = "okay";
++	phy-reset-duration = <10>;
++	phy-reset-gpios = <&gpio1 25 GPIO_ACTIVE_LOW>;
++	phy-handle = <&miphy>;
++	/*phy-supply = <&vgen3_reg>; */
++
++	mdio {
++	   #address-cells = <1>;
++       #size-cells = <0>;
++	   miphy: ethernet-phy@1 {
++	    	compatible = "ethernet-phy-ieee802.3-c22";
++	    	reg = <0x1>;
++	    	interrupt-parent = <&gpio1>;
++	    	interrupts = <28 IRQ_TYPE_LEVEL_LOW>;
++
++		   	txen-skew-ps = <0>;
++			txc-skew-ps = <3000>;
++			rxdv-skew-ps = <0>;
++			rxc-skew-ps = <3000>;
++			rxd0-skew-ps = <0>;
++			rxd1-skew-ps = <0>;
++			rxd2-skew-ps = <0>;
++			rxd3-skew-ps = <0>;
++			txd0-skew-ps = <0>;
++			txd1-skew-ps = <0>;
++			txd2-skew-ps = <0>;
++			txd3-skew-ps = <0>;
++	   };
++	};
++};
+diff --git a/arch/arm/dts/mxxf1.dts b/arch/arm/dts/mxxf1.dts
+new file mode 100644
+index 000000000..dcde22cf9
+--- /dev/null
++++ b/arch/arm/dts/mxxf1.dts
+@@ -0,0 +1,75 @@
++/*
++ * Copyright 2015 DATA RESPONS AS
++ * Copyright 2012 Freescale Semiconductor, Inc.
++ * Copyright 2011 Linaro Ltd.
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++/dts-v1/;
++
++#include <arm/imx6q.dtsi>
++#include "imx6q.dtsi"
++#include "mxxf1-common.dtsi"
++#include <dt-bindings/net/qca-ar803x.h>
++
++/ {
++	model = "DR imx6q Maritime Computer";
++	compatible = "datarespons,mxxf1";
++};
++
++&i2c3 {
++	clock-frequency = <100000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c3>;
++	status = "okay";
++
++	egalax_ts@4 {
++		compatible = "eeti,egalax_ts";
++		reg = <0x04>;
++		interrupt-parent = <&gpio6>;
++		interrupts = <8 2>;
++		wakeup-gpios = <&gpio6 8 0>;
++		disable-suspend = <1>;
++		};
++
++	main_rtc: rtc@68 {
++		compatible = "stm,m41t82";
++		reg = <0x68>;
++		};
++
++	adc7417@28 {
++		compatible = "adi,ad7417";
++		reg = <0x28>;
++		};
++};
++
++&fec {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_enet_lm>;
++	phy-mode = "rgmii-id";
++	status = "okay";
++	phy-reset-duration = <10>;
++	phy-reset-gpios = <&gpio1 25 GPIO_ACTIVE_LOW>;
++	phy-handle = <&arphy>;
++	/* phy-supply = <&vgen6_reg>; */
++	mdio {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		arphy: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++		   	qca,clk-out-frequency = <125000000>;
++		   	qca,clk-out-strength = <AR803X_STRENGTH_FULL>;
++		   	qca,keep-pll-enabled;
++			at803x,eee-disabled;
++			reg = <0x1>;
++			interrupt-parent = <&gpio1>;
++			interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++	   };
++	};
++};
+diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
+index 6b962dcf7..460757b5d 100644
+--- a/arch/arm/mach-imx/Kconfig
++++ b/arch/arm/mach-imx/Kconfig
+@@ -634,6 +634,12 @@ config MACH_SKOV_IMX6
+ 	select ARM_USE_COMPRESSED_DTB
+ 	select MCI_IMX_ESDHC_PBL
+ 
++config MACH_DR_MXXF1
++	bool "DR MXXF1"
++	select ARCH_IMX6
++	select I2C
++	select I2C_IMX
++
+ endif
+ 
+ # ----------------------------------------------------------
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+index fd0ec754e..597c04961 100644
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -452,6 +452,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
+ 		reg &= ~DWC3_GUSB3PIPECTL_DEPOCHANGE;
+ 
+ 	dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(0), reg);
++	mdelay(100);
+ 
+ 	reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+ 
+@@ -516,7 +517,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
+ 		reg &= ~DWC3_GUSB2PHYCFG_U2_FREECLK_EXISTS;
+ 
+ 	dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
+-
++	mdelay(100);
+ 	return 0;
+ }
+ 
+diff --git a/drivers/video/imx-ipu-v3/imx-ldb.c b/drivers/video/imx-ipu-v3/imx-ldb.c
+index ba34349d6..e2de26a2e 100644
+--- a/drivers/video/imx-ipu-v3/imx-ldb.c
++++ b/drivers/video/imx-ipu-v3/imx-ldb.c
+@@ -141,7 +141,7 @@ static int imx_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, struct fb_videomo
+ 
+ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, unsigned long pixclk)
+ {
+-	struct clk *diclk, *ldbclk;
++	struct clk *diclk, *ldbclk, *src_clk, *sel_clk;
+ 	char *clkname;
+ 	int ret;
+ 
+@@ -152,7 +152,16 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
+ 		dev_err(ldb->dev, "failed to get di clk: %pe\n", diclk);
+ 		return PTR_ERR(diclk);
+ 	}
+-
++	clkname = basprintf("ldb_di%d_sel", dino);
++	sel_clk = clk_lookup(clkname);
++	free(clkname);
++	if (!sel_clk) {
++		dev_err(ldb->dev, "Failed to get ldb select clock for DI%d\n", dino);
++		return -ENODEV;
++	}
++	src_clk = clk_get_parent(sel_clk);
++	clk_set_rate(src_clk, pixclk*7);
++	
+ 	clkname = basprintf("ldb_di%d_podf", chno);
+ 	ldbclk = clk_lookup(clkname);
+ 	free(clkname);
+@@ -166,8 +175,9 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
+ 		dev_err(ldb->dev, "failed to set display clock parent: %s\n", strerror(-ret));
+ 		return ret;
+ 	}
++	diclk->flags |= CLK_SET_RATE_NO_REPARENT;
+ 
+-	clk_set_rate(clk_get_parent(ldbclk), pixclk);
++	clk_set_rate(clk_get_parent(ldbclk), pixclk*2);
+ 	clk_set_rate(ldbclk, pixclk);
+ 
+ 	return 0;
+@@ -186,7 +196,7 @@ static int imx6q_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, int di,
+ 	ipuno = ((di >> 1) & 1) + 1;
+ 	dino = di & 0x1;
+ 
+-	if (!dual)
++	if (dual)
+ 		pixclk *= 2;
+ 
+ 	if (dual) {
+@@ -320,6 +330,7 @@ static int imx_ldb_probe(struct device_d *dev)
+ 	imx_ldb = xzalloc(sizeof(*imx_ldb));
+ 	imx_ldb->base = devtype->base;
+ 	imx_ldb->soc_data = devtype;
++	imx_ldb->dev = dev;
+ 
+ 	dual = of_property_read_bool(np, "fsl,dual-channel");
+ 	if (dual)
+diff --git a/drivers/video/imx-ipu-v3/ipufb.c b/drivers/video/imx-ipu-v3/ipufb.c
+index 628f98d81..78eb41361 100644
+--- a/drivers/video/imx-ipu-v3/ipufb.c
++++ b/drivers/video/imx-ipu-v3/ipufb.c
+@@ -188,6 +188,7 @@ static int ipu_crtc_mode_set(struct ipufb_info *fbi,
+ 
+ static void ipufb_enable_controller(struct fb_info *info)
+ {
++	int ret;
+ 	struct ipufb_info *fbi = container_of(info, struct ipufb_info, info);
+ 
+ 	if (!info->mode) {
+@@ -195,11 +196,23 @@ static void ipufb_enable_controller(struct fb_info *info)
+ 		return;
+ 	}
+ 
+-	vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
++	ret = vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
++	if (ret < 0) {
++		dev_err(fbi->dev, "vpl_ioctl_prepare returned %d\n", ret);
++		return;
++	}
+ 
+-	ipu_crtc_mode_set(fbi, info->mode, 0, 0);
++	ret = ipu_crtc_mode_set(fbi, info->mode, 0, 0);
++	if (ret < 0) {
++		dev_err(fbi->dev, "ipu_crtc_mode_set returned %d\n", ret);
++		return;
++	}
+ 
+-	vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
++	ret = vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
++	if (ret < 0) {
++		dev_err(fbi->dev, "vpl_ioctl_enable returned %d\n", ret);
++		return;
++	}
+ }
+ 
+ static void ipufb_disable_controller(struct fb_info *info)
+@@ -268,6 +281,7 @@ static int ipu_get_resources(struct ipufb_info *fbi,
+ 
+ 	return 0;
+ err_out:
++	dev_err(fbi->dev, "%s: ERROR %d\n", __func__, ret);
+ 	return ret;
+ }
+ 
+diff --git a/images/Makefile.imx b/images/Makefile.imx
+index 18cabbf04..4b81aa44a 100644
+--- a/images/Makefile.imx
++++ b/images/Makefile.imx
+@@ -348,6 +348,10 @@ $(call build_imx_habv4img, CONFIG_MACH_ADVANTECH_ROM_742X, start_advantech_imx6d
+ 
+ $(call build_imx_habv4img, CONFIG_MACH_ZII_RDU2, start_imx6_zii_rdu2, zii-imx6q-rdu2/flash-header-rdu2, zii-imx6-rdu2)
+ 
++# --------------------- DR boards -------------
++$(call build_imx_habv4img, CONFIG_MACH_DR_MXXF1, start_dr_mxxf1, dr-mxxf1/flash-header-dr-mxxf1, mxxf1)
++$(call build_imx_habv4img, CONFIG_MACH_DR_MXXF1, start_dr_mxxf1_hw4, dr-mxxf1/flash-header-dr-mxxf1, mxxf1-hw4)
++
+ # ----------------------- i.MX6ul / i.MX6ull based boards --------------
+ $(call build_imx_habv4img, CONFIG_MACH_GRINN_LITEBOARD, start_imx6ul_liteboard_256mb, grinn-liteboard/flash-header-liteboard-256mb, grinn-liteboard-256mb)
+ 
+-- 
+2.34.1
+

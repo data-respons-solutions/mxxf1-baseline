@@ -16,4 +16,6 @@ IMAGE_INSTALL = "\
     networkmanager-bash-completion \
     stressapptest \
     flash-uboot \
+    eeprom-gen-generate \
+    barebox \
 "
