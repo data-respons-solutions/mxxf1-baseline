@@ -8,7 +8,6 @@ inherit packagegroup
 RDEPENDS:${PN} = " \
     eeprom-gen \
     libsysfs \
-    button-daemon \
     lmsensors-sensord \
     usbutils \
     canutils \
@@ -25,5 +24,3 @@ RDEPENDS:${PN} = " \
     libgpiod-tools \
     evtest \
 "
-
-

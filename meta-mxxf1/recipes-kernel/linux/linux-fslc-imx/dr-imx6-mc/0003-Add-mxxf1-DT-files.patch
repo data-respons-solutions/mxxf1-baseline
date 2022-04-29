@@ -1,7 +1,7 @@
-From 6f8b3100f90cb8512c06807ad12fcd01cbbccf3c Mon Sep 17 00:00:00 2001
+From 02bd280220d93441794bdab139ba6826909ccb5a Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Tue, 28 Apr 2020 11:04:25 +0200
-Subject: [PATCH 3/3] Add mxxf1 DT files
+Subject: [PATCH 3/4] Add mxxf1 DT files
 
 Note that PCIE needs vph regulator
 Note: Buzzer path changed in this version to
@@ -873,7 +873,7 @@ index 000000000000..5010a849a080
 +};
 diff --git a/arch/arm/boot/dts/mxxf1-hw4.dts b/arch/arm/boot/dts/mxxf1-hw4.dts
 new file mode 100644
-index 000000000000..447d41c27c0c
+index 000000000000..8142dd9b868a
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-hw4.dts
 @@ -0,0 +1,79 @@
@@ -899,7 +899,7 @@ index 000000000000..447d41c27c0c
 +};
 +
 +&i2c3 {
-+    clock-frequency = <100000>;
++    clock-frequency = <400000>;
 +    pinctrl-names = "default";
 +    pinctrl-0 = <&pinctrl_i2c3>;
 +    status = "okay";
@@ -1111,5 +1111,5 @@ index 000000000000..de1a28b1eae5
 +	};
 +};
 -- 
-2.32.0
+2.34.1
 

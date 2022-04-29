@@ -4,14 +4,15 @@ HOMEPAGE = "http://www.datarespons.no"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "da9f2abbd88c629af76d6ef3901e31202be540b9"
+
+SRCREV ?= "${DR_OEMSW_SHA}"
 SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 S = "${WORKDIR}/git/PpcTest"
 
 require recipes-qt/qt5/qt5.inc
 
-DEPENDS += "lmsensors qtbase"
+DEPENDS += "lmsensors qtbase libgpiod"
 
 do_configure() {
 	${OE_QMAKE_QMAKE} ${S}/PpcTest.pro

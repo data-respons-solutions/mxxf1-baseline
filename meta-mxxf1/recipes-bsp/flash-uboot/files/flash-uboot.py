@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, errno, os, subprocess, hashlib, gpiod
+from ast import arg
+from cgi import test
+import sys, errno, os, subprocess, hashlib, gpiod, argparse
 
 mtd_file = "/dev/mtd0"
 mtd0_size=0;
@@ -111,7 +113,16 @@ def write_flash(offset, foffset, file_name):
   return 0
 
 
+def usage():
+  print("flash-uboot.py [-t] stage1 [--stage2 stage2]")
 # Program starts here
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-t", dest="test_only", help="Test only", action="store_true")
+parser.add_argument("stage1", action="store")
+parser.add_argument("--args.stage2", dest="stage2", action="store")
+args = parser.parse_args()
+
 result = 0
 seekoffset  = 1024
 line = gpiod.find_line("spiflash-wp")
@@ -119,39 +130,37 @@ if (line == None):
   print("No GPIO named spiflash-wp")
   sys.exit(1)
 
-if len(sys.argv) < 2:
-  print ("usage: flash [spl] <image>")
-  sys.exit(1)
-
 try:
   get_partitioning()
 
   # Check need for update
   
-  if (len(sys.argv) == 3):
-    t1 = verify(sys.argv[1], 0x400, 0)
-    t2 = verify(sys.argv[2], 0x40000)
+  if args.stage2:
+    t1 = verify(args.stage1, 0x400, 0)
+    t2 = verify(args.stage2, 0x40000)
   else:
-    t1 = verify(sys.argv[1], 0x400, 1024)
+    t1 = verify(args.stage1, 0x400, 1024)
     t2 = 1
     
   if (t1 == 0 or t2 == 0):
     print("NEED TO FLASH")
-    line.request(sys.argv[0])
+    if (args.test_only):
+      sys.exit(1)
+    line.request("flasher")
     line.set_direction_output()
     line.set_value(1)
     print("Enabled flash for write")
     erase_flash()
-    if (len(sys.argv) == 3):
+    if args.stage2:
       print("Write U-Boot SPL type")
-      write_flash(0x400, 0, sys.argv[1])
-      t1 = verify(sys.argv[1], 1024, 0)
-      write_flash(0x40000, 0, sys.argv[2])
-      t2 = verify(sys.argv[2], 0x40000, 0)
+      write_flash(0x400, 0, args.stage1)
+      t1 = verify(args.stage1, 1024, 0)
+      write_flash(0x40000, 0, args.stage2)
+      t2 = verify(args.stage2, 0x40000, 0)
     else:
       print("Write Barebox bootloader")
-      write_flash(0x400, 1024, sys.argv[1])
-      t1 = verify(sys.argv[1], 1024, 1024)
+      write_flash(0x400, 1024, args.stage1)
+      t1 = verify(args.stage1, 1024, 1024)
     if (t1 and t2):
       print("Flash updated")
     else:
@@ -159,6 +168,7 @@ try:
       print("FAILURE")
   else:
     print("Flash is up to date, no programming")
+    sys.exit(0)
 except IOError as e:
   print("IO Error", os.strerror(e.errno))
   result = e.errno

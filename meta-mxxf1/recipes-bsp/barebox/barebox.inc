@@ -21,7 +21,7 @@ SRC_URI = "http://barebox.org/download/barebox-${PV}.tar.bz2"
 
 S = "${WORKDIR}/barebox-${PV}"
 B = "${WORKDIR}/build"
-
+BAREBOX_VERSION_EXTENSION ?= "none"
 BAREBOX_CONFIG ?= ""
 
 def find_cfgs(d):
@@ -50,6 +50,7 @@ EXTRA_OEMAKE = " \
 do_configure() {
 	if [ -e ${WORKDIR}/defconfig ]; then
 		cp ${WORKDIR}/defconfig ${B}/.config
+		echo "CONFIG_LOCALVERSION=${BAREBOX_VERSION_EXTENSION}" >> ${B}/.config
 	else
 		if [ -n "${BAREBOX_CONFIG}" ]; then
 			oe_runmake ${BAREBOX_CONFIG}

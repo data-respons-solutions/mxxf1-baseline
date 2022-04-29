@@ -5,7 +5,7 @@ LICENSE = "BSD"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/LICENSE;md5=4d92cd373abda3937c2bc47fbc49d690"
 
-SRCREV ?= "0e65d9837020d0e1542fc4cd41b7cffc6657285a"
+SRCREV ?= "c63286e6ce900750c6a6cbb2472b10da0247b1d8"
 SRC_URI = "git://github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 SRC_URI += "file://history-daemon.service"

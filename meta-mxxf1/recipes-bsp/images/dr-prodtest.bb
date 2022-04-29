@@ -26,9 +26,10 @@ IMAGE_INSTALL = "\
     tiff \
     memtester \
     lmbench \
-    flash-uboot \
-    connman \
-    connman-client \
+    barebox \
+    networkmanager \
+    networkmanager-nmcli \
+    networkmanager-bash-completion \
 "
 
 add_ssh_root_key () {

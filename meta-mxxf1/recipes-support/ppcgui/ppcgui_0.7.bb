@@ -4,7 +4,7 @@ HOMEPAGE = "http://www.datarespons.no"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "da9f2abbd88c629af76d6ef3901e31202be540b9"
+SRCREV ?= "${DR_OEMSW_SHA}"
 BRANCH ?= "master"
 SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=${BRANCH}"
 S = "${WORKDIR}/git/PpcGui"
@@ -25,6 +25,7 @@ do_install() {
 FILES:${PN} = "\
 	/opt/rr/bin/rr \
 	/opt/rr/qml* \
+	/home/root \
 	"
 
 FILES:${PN}-dbg = "\
