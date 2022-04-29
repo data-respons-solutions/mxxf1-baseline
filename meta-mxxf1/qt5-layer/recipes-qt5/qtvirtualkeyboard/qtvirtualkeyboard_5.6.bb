@@ -15,7 +15,7 @@ DEPENDS += "qtdeclarative"
 
 RDEPENDS:${PN}-dev = ""
 
-S = "${WORKDIR}/git/"
+S = "${WORKDIR}/git"
 
 FILES:${PN}-dbg += " \
     ${OE_QMAKE_PATH_QML}/*/*/*/*/.debug \
