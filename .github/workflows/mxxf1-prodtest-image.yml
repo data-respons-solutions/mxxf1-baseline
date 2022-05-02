@@ -76,7 +76,7 @@ jobs:
       run: |
         export TEMPLATECONF=$SRCDIR/build/conf
         export DR_CM_COMMIT=`git -C $SRCDIR describe --tags --long --dirty --always`
-        export BB_ENV_EXTRAWHITE="DL_DIR  DR_CM_COMMIT GOOGLE_APPLICATION_CREDENTIALS"
+        export BB_ENV_PASSTHROUGH_ADDITIONS="DL_DIR  DR_CM_COMMIT GOOGLE_APPLICATION_CREDENTIALS"
         export DISTRO=dr-distro
         export MACHINE=dr-imx6-mc
         . $SRCDIR/poky/oe-init-build-env build

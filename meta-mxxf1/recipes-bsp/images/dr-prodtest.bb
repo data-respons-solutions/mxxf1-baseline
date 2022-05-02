@@ -14,7 +14,6 @@ IMAGE_INSTALL = "\
     packagegroup-core-tools-debug \
     packagegroup-core-eclipse-debug \
     dbus \
-    packagegroup-core-full-cmdline-libs \
     packagegroup-core-full-cmdline-utils \
     packagegroup-core-full-cmdline-extended \
     packagegroup-core-full-cmdline-dev-utils \
