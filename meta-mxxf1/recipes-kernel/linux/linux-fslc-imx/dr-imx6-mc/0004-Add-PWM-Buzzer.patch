@@ -1,4 +1,4 @@
-From 1b2d2e84aca3b3989bfb1c04b7a46fffcdbc763f Mon Sep 17 00:00:00 2001
+From 5fd226d4d9b85a663b6b664db1fe97244115f0a0 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.com>
 Date: Fri, 29 Apr 2022 15:35:10 +0200
 Subject: [PATCH 4/4] Add PWM Buzzer

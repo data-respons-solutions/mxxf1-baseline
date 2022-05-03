@@ -1380,7 +1380,7 @@ CONFIG_MTD_NAND_MXC=y
 # CONFIG_MTD_NAND_RICOH is not set
 # CONFIG_MTD_NAND_DISKONCHIP is not set
 # CONFIG_MTD_SPI_NAND is not set
-
+CONFIG_PWM_BUZZER=m
 #
 # ECC engine support
 #

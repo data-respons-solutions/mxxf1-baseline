@@ -1,4 +1,4 @@
-From 3d3a6c5059b365813ae906b2880eb3cf564c9d51 Mon Sep 17 00:00:00 2001
+From 348f178a6c7e696126c4ccbe3f7a1067f35c270b Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.com>
 Date: Sat, 23 Apr 2022 18:28:57 +0200
 Subject: [PATCH] Add DR MXXF1 board and fix LVDS bridge
@@ -58,7 +58,7 @@ Assign clock rates according to LVDS 7 to 1 scheme
  create mode 100644 arch/arm/dts/mxxf1.dts
 
 diff --git a/arch/arm/boards/Makefile b/arch/arm/boards/Makefile
-index 75e15cbda..1b87a4c6e 100644
+index 75e15cbda4..1b87a4c6ef 100644
 --- a/arch/arm/boards/Makefile
 +++ b/arch/arm/boards/Makefile
 @@ -191,3 +191,4 @@ obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
@@ -68,7 +68,7 @@ index 75e15cbda..1b87a4c6e 100644
 +obj-$(CONFIG_MACH_DR_MXXF1)				+= dr-mxxf1/
 diff --git a/arch/arm/boards/dr-mxxf1/Makefile b/arch/arm/boards/dr-mxxf1/Makefile
 new file mode 100644
-index 000000000..dab1fecbe
+index 0000000000..dab1fecbe4
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/Makefile
 @@ -0,0 +1,2 @@
@@ -76,7 +76,7 @@ index 000000000..dab1fecbe
 +lwl-y += lowlevel.o
 diff --git a/arch/arm/boards/dr-mxxf1/board.c b/arch/arm/boards/dr-mxxf1/board.c
 new file mode 100644
-index 000000000..c58d2e621
+index 0000000000..c58d2e6217
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/board.c
 @@ -0,0 +1,120 @@
@@ -202,7 +202,7 @@ index 000000000..c58d2e621
 +late_initcall(mxxf1_board_fixup);
 diff --git a/arch/arm/boards/dr-mxxf1/ddr-init.c b/arch/arm/boards/dr-mxxf1/ddr-init.c
 new file mode 100644
-index 000000000..e744ce7ba
+index 0000000000..e744ce7ba8
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/ddr-init.c
 @@ -0,0 +1,186 @@
@@ -394,7 +394,7 @@ index 000000000..e744ce7ba
 +}
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/default b/arch/arm/boards/dr-mxxf1/env/boot/default
 new file mode 100644
-index 000000000..9d6e19645
+index 0000000000..9d6e196454
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/default
 @@ -0,0 +1,15 @@
@@ -415,7 +415,7 @@ index 000000000..9d6e19645
 +fi
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/sdcard b/arch/arm/boards/dr-mxxf1/env/boot/sdcard
 new file mode 100644
-index 000000000..904dab5b6
+index 0000000000..904dab5b6c
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/sdcard
 @@ -0,0 +1,6 @@
@@ -427,7 +427,7 @@ index 000000000..904dab5b6
 +global linux.bootargs.dyn.root="root=/dev/mmcblk0p1 rootfstype=ext4 rootwait ro rauc.slot=_external_"
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/system0 b/arch/arm/boards/dr-mxxf1/env/boot/system0
 new file mode 100644
-index 000000000..133dc278e
+index 0000000000..133dc278e9
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/system0
 @@ -0,0 +1,6 @@
@@ -439,7 +439,7 @@ index 000000000..133dc278e
 +global linux.bootargs.dyn.root="root=/dev/mmcblk0p1 rootfstype=ext4 rootwait ro rauc.slot=system0"
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/system1 b/arch/arm/boards/dr-mxxf1/env/boot/system1
 new file mode 100644
-index 000000000..b8ea41474
+index 0000000000..b8ea41474c
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/system1
 @@ -0,0 +1,6 @@
@@ -451,7 +451,7 @@ index 000000000..b8ea41474
 +global linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext4 rootwait ro rauc.slot=system0"
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/usb b/arch/arm/boards/dr-mxxf1/env/boot/usb
 new file mode 100644
-index 000000000..10d571034
+index 0000000000..10d571034c
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/usb
 @@ -0,0 +1,6 @@
@@ -463,7 +463,7 @@ index 000000000..10d571034
 +global linux.bootargs.dyn.root="root=/dev/sda1 rootfstype=ext4 rootwait ro rauc.slot=_external_"
 diff --git a/arch/arm/boards/dr-mxxf1/env/init/greeting b/arch/arm/boards/dr-mxxf1/env/init/greeting
 new file mode 100644
-index 000000000..0000c30bc
+index 0000000000..0000c30bc9
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/init/greeting
 @@ -0,0 +1,7 @@
@@ -476,7 +476,7 @@ index 000000000..0000c30bc
 +echo "Reset reason is $global.system.reset"
 diff --git a/arch/arm/boards/dr-mxxf1/env/init/setup_boot b/arch/arm/boards/dr-mxxf1/env/init/setup_boot
 new file mode 100644
-index 000000000..0aeab1ec9
+index 0000000000..0aeab1ec9a
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/init/setup_boot
 @@ -0,0 +1,7 @@
@@ -489,7 +489,7 @@ index 000000000..0aeab1ec9
 +usb
 diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
 new file mode 100644
-index 000000000..fc6ac10ad
+index 0000000000..fc6ac10ada
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
 @@ -0,0 +1,147 @@
@@ -642,7 +642,7 @@ index 000000000..fc6ac10ad
 +
 diff --git a/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
 new file mode 100644
-index 000000000..0b37ab248
+index 0000000000..0b37ab248f
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
 @@ -0,0 +1,6 @@
@@ -654,7 +654,7 @@ index 000000000..0b37ab248
 +ivtofs 0x400
 diff --git a/arch/arm/boards/dr-mxxf1/lowlevel.c b/arch/arm/boards/dr-mxxf1/lowlevel.c
 new file mode 100644
-index 000000000..4fc444989
+index 0000000000..4fc444989b
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/lowlevel.c
 @@ -0,0 +1,55 @@
@@ -715,7 +715,7 @@ index 000000000..4fc444989
 +}
 diff --git a/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h b/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h
 new file mode 100644
-index 000000000..1748ec6b8
+index 0000000000..1748ec6b8c
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/mxxf1-gpio.h
 @@ -0,0 +1,39 @@
@@ -760,7 +760,7 @@ index 000000000..1748ec6b8
 +#endif
 diff --git a/arch/arm/boards/dr-mxxf1/param.c b/arch/arm/boards/dr-mxxf1/param.c
 new file mode 100644
-index 000000000..1ee896648
+index 0000000000..1ee896648a
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/param.c
 @@ -0,0 +1,249 @@
@@ -1015,7 +1015,7 @@ index 000000000..1ee896648
 +}
 diff --git a/arch/arm/boards/dr-mxxf1/param.h b/arch/arm/boards/dr-mxxf1/param.h
 new file mode 100644
-index 000000000..e775738ec
+index 0000000000..e775738ec7
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/param.h
 @@ -0,0 +1,32 @@
@@ -1053,7 +1053,7 @@ index 000000000..e775738ec
 +#endif  // PARAM_H
 diff --git a/arch/arm/boards/dr-mxxf1/vpd-eeprom.c b/arch/arm/boards/dr-mxxf1/vpd-eeprom.c
 new file mode 100644
-index 000000000..eb54c4ca5
+index 0000000000..eb54c4ca51
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/vpd-eeprom.c
 @@ -0,0 +1,171 @@
@@ -1230,7 +1230,7 @@ index 000000000..eb54c4ca5
 +	BAREBOX_CMD_DESC("Show VPD data") BAREBOX_CMD_END
 diff --git a/arch/arm/configs/dr-mxxf1_defconfig b/arch/arm/configs/dr-mxxf1_defconfig
 new file mode 100644
-index 000000000..71dc62649
+index 0000000000..71dc626497
 --- /dev/null
 +++ b/arch/arm/configs/dr-mxxf1_defconfig
 @@ -0,0 +1,181 @@
@@ -1416,7 +1416,7 @@ index 000000000..71dc62649
 +CONFIG_FONT_8x8=y
 +CONFIG_FONT_8x16=y
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 925ac12aa..55702f618 100644
+index 925ac12aa5..55702f6189 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
 @@ -193,4 +193,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
@@ -1427,7 +1427,7 @@ index 925ac12aa..55702f618 100644
  clean-files := *.dtb *.dtb.S .*.dtc .*.pre .*.dts *.dtb.lzo
 diff --git a/arch/arm/dts/mxxf1-common.dtsi b/arch/arm/dts/mxxf1-common.dtsi
 new file mode 100644
-index 000000000..905cfb60e
+index 0000000000..1380ff91e6
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1-common.dtsi
 @@ -0,0 +1,920 @@
@@ -1980,7 +1980,7 @@ index 000000000..905cfb60e
 +				MX6QDL_PAD_NANDF_D0__GPIO2_IO00 0x1b000
 +				MX6QDL_PAD_NANDF_D1__GPIO2_IO01 0x1b000
 +				MX6QDL_PAD_NANDF_D2__GPIO2_IO02 0x1b000		/* USBP1_OC (active low) */
-+				MX6QDL_PAD_NANDF_D3__GPIO2_IO03 0x20		/* USBP1_EN, ext 4k7 PD */
++				MX6QDL_PAD_NANDF_D3__GPIO2_IO03 0x30		/* USBP1_EN, ext 4k7 PD */
 +				MX6QDL_PAD_NANDF_D4__GPIO2_IO04 0x1b0b0
 +				MX6QDL_PAD_NANDF_D5__GPIO2_IO05 0xB060
 +				MX6QDL_PAD_NANDF_D6__GPIO2_IO06 0x1B000
@@ -1996,15 +1996,15 @@ index 000000000..905cfb60e
 +				MX6QDL_PAD_SD1_DAT2__GPIO1_IO19 0x20
 +
 +				MX6QDL_PAD_ENET_RXD0__GPIO1_IO27 0x1b000
-+				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29 0x20		/* USB_H1_PWR_EN, ext 4k7 PD */
++				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29 0x30		/* USB_H1_PWR_EN, ext 4k7 PD */
 +
 +				MX6QDL_PAD_EIM_D26__GPIO3_IO26  0x1b0b0
 +				MX6QDL_PAD_EIM_CS1__GPIO2_IO24  0x1b0b0
 +				MX6QDL_PAD_EIM_A25__GPIO5_IO02  0x1b0b0
-+				MX6QDL_PAD_EIM_D28__GPIO3_IO28  0x3		/* USBP0_EN, ext 4k7 PD */
++				MX6QDL_PAD_EIM_D28__GPIO3_IO28  0x20		/* USBP0_EN, ext 4k7 PD */
 +				MX6QDL_PAD_EIM_D29__GPIO3_IO29  0x1b0b0
 +				MX6QDL_PAD_EIM_D30__USB_H1_OC	0x1b0b0	/* USB H1 OC */
-+				MX6QDL_PAD_EIM_D31__GPIO3_IO31	0x1b0b0	/* USB P0 OC */
++				MX6QDL_PAD_EIM_D31__GPIO3_IO31	0x30	/* USB P0 OC */
 +				MX6QDL_PAD_EIM_EB3__GPIO2_IO31  0x1b0b0
 +				MX6QDL_PAD_EIM_DA9__GPIO3_IO09  0x1b0b0
 +
@@ -2353,7 +2353,7 @@ index 000000000..905cfb60e
 +};
 diff --git a/arch/arm/dts/mxxf1-hw4.dts b/arch/arm/dts/mxxf1-hw4.dts
 new file mode 100644
-index 000000000..9f36ea84b
+index 0000000000..9f36ea84bd
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1-hw4.dts
 @@ -0,0 +1,82 @@
@@ -2441,7 +2441,7 @@ index 000000000..9f36ea84b
 +};
 diff --git a/arch/arm/dts/mxxf1.dts b/arch/arm/dts/mxxf1.dts
 new file mode 100644
-index 000000000..dcde22cf9
+index 0000000000..dcde22cf9d
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1.dts
 @@ -0,0 +1,75 @@
@@ -2521,7 +2521,7 @@ index 000000000..dcde22cf9
 +	};
 +};
 diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
-index 6b962dcf7..460757b5d 100644
+index 6b962dcf7e..460757b5d3 100644
 --- a/arch/arm/mach-imx/Kconfig
 +++ b/arch/arm/mach-imx/Kconfig
 @@ -634,6 +634,12 @@ config MACH_SKOV_IMX6
@@ -2538,7 +2538,7 @@ index 6b962dcf7..460757b5d 100644
  
  # ----------------------------------------------------------
 diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
-index fd0ec754e..597c04961 100644
+index fd0ec754e0..597c04961c 100644
 --- a/drivers/usb/dwc3/core.c
 +++ b/drivers/usb/dwc3/core.c
 @@ -452,6 +452,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
@@ -2559,7 +2559,7 @@ index fd0ec754e..597c04961 100644
  }
  
 diff --git a/drivers/video/imx-ipu-v3/imx-ldb.c b/drivers/video/imx-ipu-v3/imx-ldb.c
-index ba34349d6..e2de26a2e 100644
+index ba34349d62..e2de26a2e5 100644
 --- a/drivers/video/imx-ipu-v3/imx-ldb.c
 +++ b/drivers/video/imx-ipu-v3/imx-ldb.c
 @@ -141,7 +141,7 @@ static int imx_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, struct fb_videomo
@@ -2618,7 +2618,7 @@ index ba34349d6..e2de26a2e 100644
  	dual = of_property_read_bool(np, "fsl,dual-channel");
  	if (dual)
 diff --git a/drivers/video/imx-ipu-v3/ipufb.c b/drivers/video/imx-ipu-v3/ipufb.c
-index 628f98d81..78eb41361 100644
+index 628f98d81a..78eb413610 100644
 --- a/drivers/video/imx-ipu-v3/ipufb.c
 +++ b/drivers/video/imx-ipu-v3/ipufb.c
 @@ -188,6 +188,7 @@ static int ipu_crtc_mode_set(struct ipufb_info *fbi,
@@ -2665,7 +2665,7 @@ index 628f98d81..78eb41361 100644
  }
  
 diff --git a/images/Makefile.imx b/images/Makefile.imx
-index 18cabbf04..4b81aa44a 100644
+index 18cabbf041..4b81aa44a7 100644
 --- a/images/Makefile.imx
 +++ b/images/Makefile.imx
 @@ -348,6 +348,10 @@ $(call build_imx_habv4img, CONFIG_MACH_ADVANTECH_ROM_742X, start_advantech_imx6d
