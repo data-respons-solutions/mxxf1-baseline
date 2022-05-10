@@ -1,16 +1,43 @@
-From 5fd226d4d9b85a663b6b664db1fe97244115f0a0 Mon Sep 17 00:00:00 2001
+From a929da722dacc19f789ebd7e1b79fde7dc07e5d2 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.com>
 Date: Fri, 29 Apr 2022 15:35:10 +0200
 Subject: [PATCH 4/4] Add PWM Buzzer
 
 Sound buzzer using PWM
 ---
- drivers/misc/Kconfig      |   7 ++
- drivers/misc/Makefile     |   1 +
- drivers/misc/pwm_buzzer.c | 143 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 151 insertions(+)
+ arch/arm/boot/dts/mxxf1-hw4.dts |  11 +--
+ drivers/misc/Kconfig            |   7 ++
+ drivers/misc/Makefile           |   1 +
+ drivers/misc/pwm_buzzer.c       | 143 ++++++++++++++++++++++++++++++++
+ 4 files changed, 152 insertions(+), 10 deletions(-)
  create mode 100644 drivers/misc/pwm_buzzer.c
 
+diff --git a/arch/arm/boot/dts/mxxf1-hw4.dts b/arch/arm/boot/dts/mxxf1-hw4.dts
+index 8142dd9b868a..c37e707313a4 100644
+--- a/arch/arm/boot/dts/mxxf1-hw4.dts
++++ b/arch/arm/boot/dts/mxxf1-hw4.dts
+@@ -20,20 +20,11 @@ / {
+ };
+ 
+ &i2c3 {
+-    clock-frequency = <400000>;
++    clock-frequency = <100000>;
+     pinctrl-names = "default";
+     pinctrl-0 = <&pinctrl_i2c3>;
+     status = "okay";
+ 
+-    egalax_ts@2a {
+-        compatible = "eeti,egalax_i2c";
+-        reg = <0x2a>;
+-        interrupt-parent = <&gpio6>;
+-        interrupts = <8 IRQ_TYPE_LEVEL_LOW>;
+-        int-gpios = <&gpio6 8 0>;
+-        disable-suspend = <1>;
+-        };
+-
+     main_rtc: rtc@68 {
+         compatible = "stm,m41t82";
+         reg = <0x68>;
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
 index c8e64bae0620..3dc31e9c000a 100644
 --- a/drivers/misc/Kconfig

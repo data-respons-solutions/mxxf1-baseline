@@ -10,5 +10,5 @@ SRC_URI:append:dr-imx6-mc = " \
 	file://0003-Add-mxxf1-DT-files.patch \
 	file://0004-Add-PWM-Buzzer.patch \
 "
-DR_PATCH_VERSION = "1.7"
+DR_PATCH_VERSION = "1.8"
 LINUX_VERSION_EXTENSION = "-dr-pl-${DR_PATCH_VERSION}"

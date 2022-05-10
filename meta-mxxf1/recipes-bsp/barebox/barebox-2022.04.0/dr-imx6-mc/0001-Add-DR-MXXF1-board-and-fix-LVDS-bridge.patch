@@ -1,4 +1,4 @@
-From 348f178a6c7e696126c4ccbe3f7a1067f35c270b Mon Sep 17 00:00:00 2001
+From 2de065119e4850a04d293dbdfaddb2f27b181ad2 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.com>
 Date: Sat, 23 Apr 2022 18:28:57 +0200
 Subject: [PATCH] Add DR MXXF1 board and fix LVDS bridge
@@ -19,22 +19,22 @@ Assign clock rates according to LVDS 7 to 1 scheme
  arch/arm/boards/dr-mxxf1/env/init/setup_boot  |   7 +
  .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 147 +++
  .../dr-mxxf1/flash-header-mxxf1-pbl.imxcfg    |   6 +
- arch/arm/boards/dr-mxxf1/lowlevel.c           |  55 ++
+ arch/arm/boards/dr-mxxf1/lowlevel.c           |  55 +
  arch/arm/boards/dr-mxxf1/mxxf1-gpio.h         |  39 +
  arch/arm/boards/dr-mxxf1/param.c              | 249 +++++
  arch/arm/boards/dr-mxxf1/param.h              |  32 +
  arch/arm/boards/dr-mxxf1/vpd-eeprom.c         | 171 ++++
  arch/arm/configs/dr-mxxf1_defconfig           | 181 ++++
  arch/arm/dts/Makefile                         |   1 +
- arch/arm/dts/mxxf1-common.dtsi                | 920 ++++++++++++++++++
- arch/arm/dts/mxxf1-hw4.dts                    |  82 ++
- arch/arm/dts/mxxf1.dts                        |  75 ++
+ arch/arm/dts/mxxf1-common.dtsi                | 937 ++++++++++++++++++
+ arch/arm/dts/mxxf1-hw4.dts                    |  56 ++
+ arch/arm/dts/mxxf1.dts                        |  60 ++
  arch/arm/mach-imx/Kconfig                     |   6 +
  drivers/usb/dwc3/core.c                       |   3 +-
  drivers/video/imx-ipu-v3/imx-ldb.c            |  19 +-
  drivers/video/imx-ipu-v3/ipufb.c              |  20 +-
  images/Makefile.imx                           |   4 +
- 28 files changed, 2364 insertions(+), 8 deletions(-)
+ 28 files changed, 2340 insertions(+), 8 deletions(-)
  create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
  create mode 100644 arch/arm/boards/dr-mxxf1/board.c
  create mode 100644 arch/arm/boards/dr-mxxf1/ddr-init.c
@@ -1427,10 +1427,10 @@ index 925ac12aa5..55702f6189 100644
  clean-files := *.dtb *.dtb.S .*.dtc .*.pre .*.dts *.dtb.lzo
 diff --git a/arch/arm/dts/mxxf1-common.dtsi b/arch/arm/dts/mxxf1-common.dtsi
 new file mode 100644
-index 0000000000..1380ff91e6
+index 0000000000..b074d976e9
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1-common.dtsi
-@@ -0,0 +1,920 @@
+@@ -0,0 +1,937 @@
 +/*
 + * Copyright DATA RESPONS AS
 + *
@@ -2012,10 +2012,10 @@ index 0000000000..1380ff91e6
 +
 +				MX6QDL_PAD_CSI0_DATA_EN__GPIO5_IO20 0x1b0b0
 +				MX6QDL_PAD_EIM_D30__USB_H1_OC 	0x1b0b0
-+				MX6QDL_PAD_SD2_DAT0__GPIO1_IO15 0x13000
-+				MX6QDL_PAD_SD2_DAT1__GPIO1_IO14 0x13000
-+				MX6QDL_PAD_SD2_DAT2__GPIO1_IO13 0x13000
-+				MX6QDL_PAD_SD2_DAT3__GPIO1_IO12 0x130010
++				MX6QDL_PAD_SD2_DAT0__GPIO1_IO15 0x13040	/* HWREV0, PD */
++				MX6QDL_PAD_SD2_DAT1__GPIO1_IO14 0x13040	/* HWREV1, PD */
++				MX6QDL_PAD_SD2_DAT2__GPIO1_IO13 0x13040	/* HWREV2, PD */
++				MX6QDL_PAD_SD2_DAT3__GPIO1_IO12 0x13040	/* HWREV3, PD */
 +
 +				MX6QDL_PAD_KEY_COL0__GPIO4_IO06 0x1b0b0
 +				MX6QDL_PAD_KEY_ROW0__GPIO4_IO07 0x1b0b0
@@ -2351,12 +2351,29 @@ index 0000000000..1380ff91e6
 +&tempmon {
 +	status = "okay";
 +};
++
++&i2c3 {
++	clock-frequency = <100000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c3>;
++	status = "okay";
++
++	main_rtc: rtc@68 {
++		compatible = "stm,m41t82";
++		reg = <0x68>;
++		};
++
++	adc7417@28 {
++		compatible = "adi,ad7417";
++		reg = <0x28>;
++		};
++};
 diff --git a/arch/arm/dts/mxxf1-hw4.dts b/arch/arm/dts/mxxf1-hw4.dts
 new file mode 100644
-index 0000000000..9f36ea84bd
+index 0000000000..c93e024068
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1-hw4.dts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,56 @@
 +/*
 + * Copyright 2015 DATA RESPONS AS
 + *
@@ -2377,32 +2394,6 @@ index 0000000000..9f36ea84bd
 +/ {
 +    model = "DR-MXXF1";
 +    compatible = "datarespons,mxxf1-hw4";
-+};
-+
-+&i2c3 {
-+    clock-frequency = <100000>;
-+    pinctrl-names = "default";
-+    pinctrl-0 = <&pinctrl_i2c3>;
-+    status = "okay";
-+
-+    egalax_ts@2a {
-+        compatible = "eeti,egalax_i2c";
-+        reg = <0x2a>;
-+        interrupt-parent = <&gpio6>;
-+        interrupts = <8 IRQ_TYPE_LEVEL_LOW>;
-+        int-gpios = <&gpio6 8 0>;
-+        disable-suspend = <1>;
-+        };
-+
-+    main_rtc: rtc@68 {
-+        compatible = "stm,m41t82";
-+        reg = <0x68>;
-+        };
-+
-+    adc7417@28 {
-+        compatible = "adi,ad7417";
-+        reg = <0x28>;
-+        };
 +};
 +
 +&fec {
@@ -2441,10 +2432,10 @@ index 0000000000..9f36ea84bd
 +};
 diff --git a/arch/arm/dts/mxxf1.dts b/arch/arm/dts/mxxf1.dts
 new file mode 100644
-index 0000000000..dcde22cf9d
+index 0000000000..c85cb76d7b
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1.dts
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,60 @@
 +/*
 + * Copyright 2015 DATA RESPONS AS
 + * Copyright 2012 Freescale Semiconductor, Inc.
@@ -2471,11 +2462,6 @@ index 0000000000..dcde22cf9d
 +};
 +
 +&i2c3 {
-+	clock-frequency = <100000>;
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_i2c3>;
-+	status = "okay";
-+
 +	egalax_ts@4 {
 +		compatible = "eeti,egalax_ts";
 +		reg = <0x04>;
@@ -2483,17 +2469,7 @@ index 0000000000..dcde22cf9d
 +		interrupts = <8 2>;
 +		wakeup-gpios = <&gpio6 8 0>;
 +		disable-suspend = <1>;
-+		};
-+
-+	main_rtc: rtc@68 {
-+		compatible = "stm,m41t82";
-+		reg = <0x68>;
-+		};
-+
-+	adc7417@28 {
-+		compatible = "adi,ad7417";
-+		reg = <0x28>;
-+		};
++	};
 +};
 +
 +&fec {

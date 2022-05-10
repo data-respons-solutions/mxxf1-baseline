@@ -1,4 +1,4 @@
-From b18dc2e2eb267242f7a989deef0027bda3b07a38 Mon Sep 17 00:00:00 2001
+From 3381099e9668777676dd4c3634113cff1190bc59 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Thu, 18 Nov 2021 20:58:16 +0100
 Subject: [PATCH 1/4] mx6q: Add GPIO and WD parser
