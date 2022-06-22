@@ -12,4 +12,5 @@ RDEPENDS:${PN} = " \
     stressapptest \
     mmc-utils \
     prodtest \
+    button-daemon \
 "
