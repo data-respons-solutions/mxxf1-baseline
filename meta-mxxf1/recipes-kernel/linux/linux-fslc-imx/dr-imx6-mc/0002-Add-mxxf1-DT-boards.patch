@@ -1,19 +1,14 @@
-From 02bd280220d93441794bdab139ba6826909ccb5a Mon Sep 17 00:00:00 2001
+From 1826890beea3609031b24209a38e6f6ed5e13ca9 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
-Date: Tue, 28 Apr 2020 11:04:25 +0200
-Subject: [PATCH 3/4] Add mxxf1 DT files
+Date: Wed, 22 Jun 2022 14:43:14 +0200
+Subject: [PATCH 2/2] Add mxxf1 DT boards
 
-Note that PCIE needs vph regulator
-Note: Buzzer path changed in this version to
-/sys/bus/platform/devices/pwm-buzzer
-Add DT for HW 4
-Add PHY changes
 ---
  arch/arm/boot/dts/mxxf1-common.dtsi | 846 ++++++++++++++++++++++++++++
- arch/arm/boot/dts/mxxf1-hw4.dts     |  79 +++
+ arch/arm/boot/dts/mxxf1-hw4.dts     |  70 +++
  arch/arm/boot/dts/mxxf1-tsup.dts    |  68 +++
  arch/arm/boot/dts/mxxf1.dts         |  74 +++
- 4 files changed, 1067 insertions(+)
+ 4 files changed, 1058 insertions(+)
  create mode 100644 arch/arm/boot/dts/mxxf1-common.dtsi
  create mode 100644 arch/arm/boot/dts/mxxf1-hw4.dts
  create mode 100644 arch/arm/boot/dts/mxxf1-tsup.dts
@@ -873,10 +868,10 @@ index 000000000000..5010a849a080
 +};
 diff --git a/arch/arm/boot/dts/mxxf1-hw4.dts b/arch/arm/boot/dts/mxxf1-hw4.dts
 new file mode 100644
-index 000000000000..8142dd9b868a
+index 000000000000..c37e707313a4
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-hw4.dts
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,70 @@
 +/*
 + * Copyright 2015 DATA RESPONS AS
 + *
@@ -899,19 +894,10 @@ index 000000000000..8142dd9b868a
 +};
 +
 +&i2c3 {
-+    clock-frequency = <400000>;
++    clock-frequency = <100000>;
 +    pinctrl-names = "default";
 +    pinctrl-0 = <&pinctrl_i2c3>;
 +    status = "okay";
-+
-+    egalax_ts@2a {
-+        compatible = "eeti,egalax_i2c";
-+        reg = <0x2a>;
-+        interrupt-parent = <&gpio6>;
-+        interrupts = <8 IRQ_TYPE_LEVEL_LOW>;
-+        int-gpios = <&gpio6 8 0>;
-+        disable-suspend = <1>;
-+        };
 +
 +    main_rtc: rtc@68 {
 +        compatible = "stm,m41t82";

@@ -5,7 +5,7 @@ LIC_FILES_CHKSUM = "file://MODULE_LICENSE_APACHE2;md5=d41d8cd98f00b204e9800998ec
 
 SRC_URI = "git://anongit.freedesktop.org/evtest"
 
-SRC_URI = "git://github.com/stressapptest/stressapptest.git;protocol=https"
+SRC_URI = "git://github.com/stressapptest/stressapptest.git;protocol=https;branch=master"
 
 
 S = "${WORKDIR}/git"

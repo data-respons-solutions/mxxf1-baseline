@@ -3,12 +3,12 @@
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
+DEPENDS += "lzop-native"
+
 SRC_URI:append:dr-imx6-mc = " \
 	file://defconfig \
-	file://0001-mx6q-Add-GPIO-and-WD-parser.patch \
-	file://0002-Add-misc-devices.patch \
-	file://0003-Add-mxxf1-DT-files.patch \
-	file://0004-Add-PWM-Buzzer.patch \
+	file://0001-Add-pwm-and-function-mux.patch \
+	file://0002-Add-mxxf1-DT-boards.patch \
 "
-DR_PATCH_VERSION = "1.8"
+DR_PATCH_VERSION = "2.0"
 LINUX_VERSION_EXTENSION = "-dr-pl-${DR_PATCH_VERSION}"
