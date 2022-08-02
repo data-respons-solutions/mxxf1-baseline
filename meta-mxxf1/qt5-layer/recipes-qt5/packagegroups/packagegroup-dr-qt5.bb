@@ -17,17 +17,10 @@ RDEPENDS:${PN} = " \
     qtlocation \
     qtlocation-plugins \
     qtlocation-qmlplugins \
-    qtsensors-qmlplugins \
-    qtserialport-mkspecs \
-    qtsvg-mkspecs \
-    qtsvg-plugins \
     qt3d \
     qt3d-mkspecs \
     qt3d-qmlplugins \
     qt3d-plugins \
-    qtsensors-mkspecs \
-    qtsensors-plugins \
-    qtsensors-qmlplugins \
     qtconnectivity-mkspecs \
     qtconnectivity-qmlplugins \
     cinematicexperience \

@@ -13,4 +13,5 @@ RDEPENDS:${PN} = " \
     mmc-utils \
     prodtest \
     button-daemon \
+    eepromaccesstool \
 "
