@@ -1,0 +1,120 @@
+From 1d6b26c422e341033622ce8294957c3925878047 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Wed, 3 Aug 2022 17:48:10 +0200
+Subject: [PATCH 2/3] IPUV3: Fix LVDS bridge
+
+Add missing configuration
+---
+ drivers/video/imx-ipu-v3/imx-ldb.c | 19 +++++++++++++++----
+ drivers/video/imx-ipu-v3/ipufb.c   | 20 +++++++++++++++++---
+ 2 files changed, 32 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/video/imx-ipu-v3/imx-ldb.c b/drivers/video/imx-ipu-v3/imx-ldb.c
+index ba34349d62..e2de26a2e5 100644
+--- a/drivers/video/imx-ipu-v3/imx-ldb.c
++++ b/drivers/video/imx-ipu-v3/imx-ldb.c
+@@ -141,7 +141,7 @@ static int imx_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, struct fb_videomo
+ 
+ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, unsigned long pixclk)
+ {
+-	struct clk *diclk, *ldbclk;
++	struct clk *diclk, *ldbclk, *src_clk, *sel_clk;
+ 	char *clkname;
+ 	int ret;
+ 
+@@ -152,7 +152,16 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
+ 		dev_err(ldb->dev, "failed to get di clk: %pe\n", diclk);
+ 		return PTR_ERR(diclk);
+ 	}
+-
++	clkname = basprintf("ldb_di%d_sel", dino);
++	sel_clk = clk_lookup(clkname);
++	free(clkname);
++	if (!sel_clk) {
++		dev_err(ldb->dev, "Failed to get ldb select clock for DI%d\n", dino);
++		return -ENODEV;
++	}
++	src_clk = clk_get_parent(sel_clk);
++	clk_set_rate(src_clk, pixclk*7);
++	
+ 	clkname = basprintf("ldb_di%d_podf", chno);
+ 	ldbclk = clk_lookup(clkname);
+ 	free(clkname);
+@@ -166,8 +175,9 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
+ 		dev_err(ldb->dev, "failed to set display clock parent: %s\n", strerror(-ret));
+ 		return ret;
+ 	}
++	diclk->flags |= CLK_SET_RATE_NO_REPARENT;
+ 
+-	clk_set_rate(clk_get_parent(ldbclk), pixclk);
++	clk_set_rate(clk_get_parent(ldbclk), pixclk*2);
+ 	clk_set_rate(ldbclk, pixclk);
+ 
+ 	return 0;
+@@ -186,7 +196,7 @@ static int imx6q_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, int di,
+ 	ipuno = ((di >> 1) & 1) + 1;
+ 	dino = di & 0x1;
+ 
+-	if (!dual)
++	if (dual)
+ 		pixclk *= 2;
+ 
+ 	if (dual) {
+@@ -320,6 +330,7 @@ static int imx_ldb_probe(struct device_d *dev)
+ 	imx_ldb = xzalloc(sizeof(*imx_ldb));
+ 	imx_ldb->base = devtype->base;
+ 	imx_ldb->soc_data = devtype;
++	imx_ldb->dev = dev;
+ 
+ 	dual = of_property_read_bool(np, "fsl,dual-channel");
+ 	if (dual)
+diff --git a/drivers/video/imx-ipu-v3/ipufb.c b/drivers/video/imx-ipu-v3/ipufb.c
+index f8bb69da06..b66421fe27 100644
+--- a/drivers/video/imx-ipu-v3/ipufb.c
++++ b/drivers/video/imx-ipu-v3/ipufb.c
+@@ -186,6 +186,7 @@ static int ipu_crtc_mode_set(struct ipufb_info *fbi,
+ 
+ static void ipufb_enable_controller(struct fb_info *info)
+ {
++	int ret;
+ 	struct ipufb_info *fbi = container_of(info, struct ipufb_info, info);
+ 
+ 	if (!info->mode) {
+@@ -193,11 +194,23 @@ static void ipufb_enable_controller(struct fb_info *info)
+ 		return;
+ 	}
+ 
+-	vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
++	ret = vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
++	if (ret < 0) {
++		dev_err(fbi->dev, "vpl_ioctl_prepare returned %d\n", ret);
++		return;
++	}
+ 
+-	ipu_crtc_mode_set(fbi, info->mode, 0, 0);
++	ret = ipu_crtc_mode_set(fbi, info->mode, 0, 0);
++	if (ret < 0) {
++		dev_err(fbi->dev, "ipu_crtc_mode_set returned %d\n", ret);
++		return;
++	}
+ 
+-	vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
++	ret = vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
++	if (ret < 0) {
++		dev_err(fbi->dev, "vpl_ioctl_enable returned %d\n", ret);
++		return;
++	}
+ }
+ 
+ static void ipufb_disable_controller(struct fb_info *info)
+@@ -266,6 +279,7 @@ static int ipu_get_resources(struct ipufb_info *fbi,
+ 
+ 	return 0;
+ err_out:
++	dev_err(fbi->dev, "%s: ERROR %d\n", __func__, ret);
+ 	return ret;
+ }
+ 
+-- 
+2.34.1
+

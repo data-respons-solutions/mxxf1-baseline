@@ -1,14 +1,12 @@
-From 2de065119e4850a04d293dbdfaddb2f27b181ad2 Mon Sep 17 00:00:00 2001
-From: Hans Christian Lonstad <hcl@datarespons.com>
-Date: Sat, 23 Apr 2022 18:28:57 +0200
-Subject: [PATCH] Add DR MXXF1 board and fix LVDS bridge
+From 8b9fb805951ee451f7c46cdf9c546d2e13ad1d62 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Wed, 3 Aug 2022 17:50:43 +0200
+Subject: [PATCH 3/3] Add mxxf1 board
 
-LVDS: Avoid re-parenting of IPU DI clocks
-Assign clock rates according to LVDS 7 to 1 scheme
 ---
  arch/arm/boards/Makefile                      |   1 +
  arch/arm/boards/dr-mxxf1/Makefile             |   2 +
- arch/arm/boards/dr-mxxf1/board.c              | 120 +++
+ arch/arm/boards/dr-mxxf1/board.c              | 123 +++
  arch/arm/boards/dr-mxxf1/ddr-init.c           | 186 ++++
  arch/arm/boards/dr-mxxf1/env/boot/default     |  15 +
  arch/arm/boards/dr-mxxf1/env/boot/sdcard      |   6 +
@@ -30,11 +28,8 @@ Assign clock rates according to LVDS 7 to 1 scheme
  arch/arm/dts/mxxf1-hw4.dts                    |  56 ++
  arch/arm/dts/mxxf1.dts                        |  60 ++
  arch/arm/mach-imx/Kconfig                     |   6 +
- drivers/usb/dwc3/core.c                       |   3 +-
- drivers/video/imx-ipu-v3/imx-ldb.c            |  19 +-
- drivers/video/imx-ipu-v3/ipufb.c              |  20 +-
  images/Makefile.imx                           |   4 +
- 28 files changed, 2340 insertions(+), 8 deletions(-)
+ 25 files changed, 2309 insertions(+)
  create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
  create mode 100644 arch/arm/boards/dr-mxxf1/board.c
  create mode 100644 arch/arm/boards/dr-mxxf1/ddr-init.c
@@ -58,10 +53,10 @@ Assign clock rates according to LVDS 7 to 1 scheme
  create mode 100644 arch/arm/dts/mxxf1.dts
 
 diff --git a/arch/arm/boards/Makefile b/arch/arm/boards/Makefile
-index 75e15cbda4..1b87a4c6ef 100644
+index d303999614..55eefcfab7 100644
 --- a/arch/arm/boards/Makefile
 +++ b/arch/arm/boards/Makefile
-@@ -191,3 +191,4 @@ obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
+@@ -192,3 +192,4 @@ obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
  obj-$(CONFIG_MACH_RK3568_EVB)			+= rockchip-rk3568-evb/
  obj-$(CONFIG_MACH_RK3568_BPI_R2PRO)			+= rockchip-rk3568-bpi-r2pro/
  obj-$(CONFIG_MACH_PINE64_QUARTZ64)		+= pine64-quartz64/
@@ -76,10 +71,10 @@ index 0000000000..dab1fecbe4
 +lwl-y += lowlevel.o
 diff --git a/arch/arm/boards/dr-mxxf1/board.c b/arch/arm/boards/dr-mxxf1/board.c
 new file mode 100644
-index 0000000000..c58d2e6217
+index 0000000000..e27dd6b128
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/board.c
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,123 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +// SPDX-FileCopyrightText: 2012 Steffen Trumtrar, Pengutronix
 +
@@ -115,12 +110,15 @@ index 0000000000..c58d2e6217
 +
 +#include "mxxf1-gpio.h"
 +#include "param.h"
++#define PFUZE100_SW3A_VOLT 0x3C
 +#define PFUZE100_SW3B_VOLT 0x43
 +
 +static void setup_pmic_voltages(struct regmap *map)
 +{
 +	/* Set DDR3 to 1.35V */
-+	regmap_write(map, PFUZE100_SW3B_VOLT, 11);
++	printf("Setting DDR3 to 1.35V\n");
++	regmap_write(map, PFUZE100_SW3A_VOLT, 38);
++	regmap_write(map, PFUZE100_SW3B_VOLT, 38);
 +}
 +
 +static int setup_gpio(void)
@@ -1416,10 +1414,10 @@ index 0000000000..71dc626497
 +CONFIG_FONT_8x8=y
 +CONFIG_FONT_8x16=y
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 925ac12aa5..55702f6189 100644
+index 46e5e67672..514c2358ff 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -193,4 +193,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
+@@ -195,4 +195,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
  lwl-$(CONFIG_MACH_ZEDBOARD) += zynq-zed.dtb.o
  lwl-$(CONFIG_MACH_MNT_REFORM) += imx8mq-mnt-reform2.dtb.o
  
@@ -2513,138 +2511,11 @@ index 6b962dcf7e..460757b5d3 100644
  endif
  
  # ----------------------------------------------------------
-diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
-index fd0ec754e0..597c04961c 100644
---- a/drivers/usb/dwc3/core.c
-+++ b/drivers/usb/dwc3/core.c
-@@ -452,6 +452,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
- 		reg &= ~DWC3_GUSB3PIPECTL_DEPOCHANGE;
- 
- 	dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(0), reg);
-+	mdelay(100);
- 
- 	reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
- 
-@@ -516,7 +517,7 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
- 		reg &= ~DWC3_GUSB2PHYCFG_U2_FREECLK_EXISTS;
- 
- 	dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
--
-+	mdelay(100);
- 	return 0;
- }
- 
-diff --git a/drivers/video/imx-ipu-v3/imx-ldb.c b/drivers/video/imx-ipu-v3/imx-ldb.c
-index ba34349d62..e2de26a2e5 100644
---- a/drivers/video/imx-ipu-v3/imx-ldb.c
-+++ b/drivers/video/imx-ipu-v3/imx-ldb.c
-@@ -141,7 +141,7 @@ static int imx_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, struct fb_videomo
- 
- static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, unsigned long pixclk)
- {
--	struct clk *diclk, *ldbclk;
-+	struct clk *diclk, *ldbclk, *src_clk, *sel_clk;
- 	char *clkname;
- 	int ret;
- 
-@@ -152,7 +152,16 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
- 		dev_err(ldb->dev, "failed to get di clk: %pe\n", diclk);
- 		return PTR_ERR(diclk);
- 	}
--
-+	clkname = basprintf("ldb_di%d_sel", dino);
-+	sel_clk = clk_lookup(clkname);
-+	free(clkname);
-+	if (!sel_clk) {
-+		dev_err(ldb->dev, "Failed to get ldb select clock for DI%d\n", dino);
-+		return -ENODEV;
-+	}
-+	src_clk = clk_get_parent(sel_clk);
-+	clk_set_rate(src_clk, pixclk*7);
-+	
- 	clkname = basprintf("ldb_di%d_podf", chno);
- 	ldbclk = clk_lookup(clkname);
- 	free(clkname);
-@@ -166,8 +175,9 @@ static int imx6q_set_clock(struct imx_ldb *ldb, int ipuno, int dino, int chno, u
- 		dev_err(ldb->dev, "failed to set display clock parent: %s\n", strerror(-ret));
- 		return ret;
- 	}
-+	diclk->flags |= CLK_SET_RATE_NO_REPARENT;
- 
--	clk_set_rate(clk_get_parent(ldbclk), pixclk);
-+	clk_set_rate(clk_get_parent(ldbclk), pixclk*2);
- 	clk_set_rate(ldbclk, pixclk);
- 
- 	return 0;
-@@ -186,7 +196,7 @@ static int imx6q_ldb_prepare(struct imx_ldb_channel *imx_ldb_ch, int di,
- 	ipuno = ((di >> 1) & 1) + 1;
- 	dino = di & 0x1;
- 
--	if (!dual)
-+	if (dual)
- 		pixclk *= 2;
- 
- 	if (dual) {
-@@ -320,6 +330,7 @@ static int imx_ldb_probe(struct device_d *dev)
- 	imx_ldb = xzalloc(sizeof(*imx_ldb));
- 	imx_ldb->base = devtype->base;
- 	imx_ldb->soc_data = devtype;
-+	imx_ldb->dev = dev;
- 
- 	dual = of_property_read_bool(np, "fsl,dual-channel");
- 	if (dual)
-diff --git a/drivers/video/imx-ipu-v3/ipufb.c b/drivers/video/imx-ipu-v3/ipufb.c
-index 628f98d81a..78eb413610 100644
---- a/drivers/video/imx-ipu-v3/ipufb.c
-+++ b/drivers/video/imx-ipu-v3/ipufb.c
-@@ -188,6 +188,7 @@ static int ipu_crtc_mode_set(struct ipufb_info *fbi,
- 
- static void ipufb_enable_controller(struct fb_info *info)
- {
-+	int ret;
- 	struct ipufb_info *fbi = container_of(info, struct ipufb_info, info);
- 
- 	if (!info->mode) {
-@@ -195,11 +196,23 @@ static void ipufb_enable_controller(struct fb_info *info)
- 		return;
- 	}
- 
--	vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
-+	ret = vpl_ioctl_prepare(&fbi->vpl, 2 + fbi->dino, info->mode);
-+	if (ret < 0) {
-+		dev_err(fbi->dev, "vpl_ioctl_prepare returned %d\n", ret);
-+		return;
-+	}
- 
--	ipu_crtc_mode_set(fbi, info->mode, 0, 0);
-+	ret = ipu_crtc_mode_set(fbi, info->mode, 0, 0);
-+	if (ret < 0) {
-+		dev_err(fbi->dev, "ipu_crtc_mode_set returned %d\n", ret);
-+		return;
-+	}
- 
--	vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
-+	ret = vpl_ioctl_enable(&fbi->vpl, 2 + fbi->dino);
-+	if (ret < 0) {
-+		dev_err(fbi->dev, "vpl_ioctl_enable returned %d\n", ret);
-+		return;
-+	}
- }
- 
- static void ipufb_disable_controller(struct fb_info *info)
-@@ -268,6 +281,7 @@ static int ipu_get_resources(struct ipufb_info *fbi,
- 
- 	return 0;
- err_out:
-+	dev_err(fbi->dev, "%s: ERROR %d\n", __func__, ret);
- 	return ret;
- }
- 
 diff --git a/images/Makefile.imx b/images/Makefile.imx
-index 18cabbf041..4b81aa44a7 100644
+index 62549ab758..241308b3df 100644
 --- a/images/Makefile.imx
 +++ b/images/Makefile.imx
-@@ -348,6 +348,10 @@ $(call build_imx_habv4img, CONFIG_MACH_ADVANTECH_ROM_742X, start_advantech_imx6d
+@@ -350,6 +350,10 @@ $(call build_imx_habv4img, CONFIG_MACH_ADVANTECH_ROM_742X, start_advantech_imx6d
  
  $(call build_imx_habv4img, CONFIG_MACH_ZII_RDU2, start_imx6_zii_rdu2, zii-imx6q-rdu2/flash-header-rdu2, zii-imx6-rdu2)
  

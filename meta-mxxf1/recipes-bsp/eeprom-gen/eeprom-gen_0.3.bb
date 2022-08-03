@@ -4,7 +4,7 @@ HOMEPAGE = "http://www.datarespons.no"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRCREV ?= "58598150eb81241f8fbb40bd13ebcb0931990cc1"
+SRCREV ?= "${DR_OEMSW_SHA}"
 SRC_URI = "git://git@github.com/data-respons-solutions/mxxf1-oem-sw.git;protocol=ssh;branch=master"
 
 S = "${WORKDIR}/git/eeprom"
