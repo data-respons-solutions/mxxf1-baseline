@@ -3,9 +3,8 @@
 SUMMARY = "RRM10 Collection"
 LICENSE = "MIT"
 
-inherit packagegroup
-
 PACKAGE_ARCH = "${TUNE_PKGARCH}"
+inherit packagegroup
 
 RDEPENDS:${PN} = " \
     eeprom-gen \

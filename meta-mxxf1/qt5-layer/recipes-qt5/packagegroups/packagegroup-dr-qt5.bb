@@ -3,6 +3,7 @@
 SUMMARY = "Qt5 Collection"
 LICENSE = "MIT"
 
+PACKAGE_ARCH = "${TUNE_PKGARCH}"
 inherit packagegroup
 
 RDEPENDS:${PN} = " \

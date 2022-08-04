@@ -3,10 +3,9 @@
 SUMMARY = "DR Extra Collection"
 LICENSE = "MIT"
 
-
+PACKAGE_ARCH = "${TUNE_PKGARCH}"
 inherit packagegroup
 
-PACKAGE_ARCH = "${TUNE_PKGARCH}"
 
 RDEPENDS:${PN} = " \
     dosfstools \
