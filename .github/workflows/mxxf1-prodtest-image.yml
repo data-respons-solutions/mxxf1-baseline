@@ -19,10 +19,14 @@ env:
   WORKDIR: ${{github.workspace}}/workdir
   SRCDIR: ${{github.workspace}}/src
   DISTRO: dr-distro
+  MACHINE: dr-imx6-mc
 
 jobs:
   build:
-    runs-on: [ hardknott, gcloud ]
+    runs-on: [ kirkstone, gcloud ]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
 
     steps:
 
@@ -30,7 +34,7 @@ jobs:
       run: |
         mkdir -p $HOME/.ssh
         chmod 0700 $HOME/.ssh
-        echo "${{ secrets.ID_DR_BUILD }}" > $HOME/.ssh/id_rsa
+        cp /work/keys/mxxf1-oe-system $HOME/.ssh/id_rsa
         chmod 0600 $HOME/.ssh/id_rsa
         echo "Host github.com" > $HOME/.ssh/config
         echo "IdentityFile ~/.ssh/id_rsa" >> $HOME/.ssh/config
@@ -55,12 +59,14 @@ jobs:
       run: |
         echo "Build type is release"
         echo "BUILD_TYPE=release" >> $GITHUB_ENV
+        echo "BUCKET=mxxf1-release" >> $GITHUB_ENV
 
     - name: GitEventStaging
       if: github.event_name != 'workflow_dispatch' && ${{ !startsWith(github.event.head_commit.message, 'Release') }}
       run: |
         echo "Build type is staging"
         echo "BUILD_TYPE=staging" >> $GITHUB_ENV
+        echo "BUCKET=mxxf1-staging" >> $GITHUB_ENV
 
     - name: Prep
       run: |
@@ -74,7 +80,9 @@ jobs:
         SSTATE_DIR: '${{github.workspace}}/workdir/sstate-cache'
         DL_DIR: '${{github.workspace}}/workdir/downloads'
       run: |
+        echo "IMAGE=$IMAGE_NAME" >> $GITHUB_ENV
         export TEMPLATECONF=$SRCDIR/build/conf
+        export DL_DIR=/work/downloads
         export DR_CM_COMMIT=`git -C $SRCDIR describe --tags --long --dirty --always`
         export BB_ENV_PASSTHROUGH_ADDITIONS="DL_DIR  DR_CM_COMMIT GOOGLE_APPLICATION_CREDENTIALS"
         export DISTRO=dr-distro
@@ -83,26 +91,24 @@ jobs:
         echo "Now at $PWD starting build"
         bitbake $IMAGE_NAME
 
-    - name: Credentials
-      run: |
-        TF=`mktemp XXXXX.json`
-        echo "$CREDS" > $TF
-        chmod 0600 $TF
-        echo "GOOGLE_APPLICATION_CREDENTIALS=$TF" >> $GITHUB_ENV
-        gcloud auth activate-service-account --project "$GCP_PROJECT" --key-file $TF
-    
-    - name: deployStaging
-      shell: bash
-      working-directory: ${{env.WORKDIR}}
-      run: |
-        IMAGE=`find . -name $IMAGE_NAME-dr-imx6-mc.tar.bz2`
-        echo "Upload $IMAGE to GCP mxxf1-$BUILD_TYPE bucket"
-        gsutil cp $IMAGE gs://mxxf1-$BUILD_TYPE
+    - name: 'Auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        credentials_json: '${{ secrets.GCP_BUILD_JSON }}'
 
-    - name: Clean up
+    - name: 'Upload'
+      uses: 'google-github-actions/upload-cloud-storage@v0'
+      with:
+        path: ${{env.WORKDIR}}/build/tmp/deploy/images/${{env.MACHINE}}
+        destination: ${{env.BUCKET}}
+        parent: false
+        glob: '**/${{env.IMAGE}}-*.rootfs.tar.bz2'
+
+    - name: 'Clean'
       if: always()
       run: |
         echo "Remove local cached creds"
-        rm -f $GOOGLE_APPLICATION_CREDENTIALS
         [ -f $HOME/.ssh/id_rsa.backup ] && cp $HOME/.ssh/id_rsa.backup $HOME/.ssh/id_rsa
         rm -f $HOME/.ssh/config
+        rm -rf $SRCDIR/build/conf
+
