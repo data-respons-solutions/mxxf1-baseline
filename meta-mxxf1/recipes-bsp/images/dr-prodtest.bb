@@ -1,7 +1,7 @@
 DESCRIPTION = "Data Respons RRM10 Production Test image"
 
 inherit core-image dr-image-info
-IMAGE_FEATURES += "ssh-server-openssh package-management hwcodecs empty-root-password"
+IMAGE_FEATURES += "ssh-server-openssh package-management hwcodecs empty-root-password debug-tweaks"
 
 VOLATILE_LOG_DIR = "no"
 
