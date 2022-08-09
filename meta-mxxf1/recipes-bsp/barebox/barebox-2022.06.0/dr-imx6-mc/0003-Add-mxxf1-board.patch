@@ -1,10 +1,11 @@
-From a85d4baab53da7064717bffd6557f5e81e2758cd Mon Sep 17 00:00:00 2001
+From 7c78c402426938489ba317ae5db93ef7edd7ecc0 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 3 Aug 2022 17:50:43 +0200
 Subject: [PATCH 3/3] Add mxxf1 board
 
-Recalibrate DDR3 on new PCB
-Significant deviation from previous version
+Note on DDR3 calibration:
+ddr stress tester 3.0 generates values that
+make some boards fail.
 ---
  arch/arm/boards/Makefile                      |   1 +
  arch/arm/boards/dr-mxxf1/CalibrationTest.txt  | 311 ++++++
@@ -18,10 +19,9 @@ Significant deviation from previous version
  arch/arm/boards/dr-mxxf1/env/boot/usb         |   6 +
  arch/arm/boards/dr-mxxf1/env/init/greeting    |   7 +
  arch/arm/boards/dr-mxxf1/env/init/setup_boot  |   7 +
- .../dr-mxxf1/flash-header-dr-mxxf1-hw4.imxcfg | 148 +++
  .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 147 +++
  .../dr-mxxf1/flash-header-mxxf1-pbl.imxcfg    |   6 +
- arch/arm/boards/dr-mxxf1/lowlevel.c           |  55 +
+ arch/arm/boards/dr-mxxf1/lowlevel.c           |  57 ++
  arch/arm/boards/dr-mxxf1/mxxf1-gpio.h         |  39 +
  arch/arm/boards/dr-mxxf1/param.c              | 249 +++++
  arch/arm/boards/dr-mxxf1/param.h              |  32 +
@@ -33,7 +33,7 @@ Significant deviation from previous version
  arch/arm/dts/mxxf1.dts                        |  60 ++
  arch/arm/mach-imx/Kconfig                     |   6 +
  images/Makefile.imx                           |   4 +
- 27 files changed, 2779 insertions(+)
+ 26 files changed, 2633 insertions(+)
  create mode 100644 arch/arm/boards/dr-mxxf1/CalibrationTest.txt
  create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
  create mode 100644 arch/arm/boards/dr-mxxf1/board.c
@@ -45,7 +45,6 @@ Significant deviation from previous version
  create mode 100644 arch/arm/boards/dr-mxxf1/env/boot/usb
  create mode 100644 arch/arm/boards/dr-mxxf1/env/init/greeting
  create mode 100644 arch/arm/boards/dr-mxxf1/env/init/setup_boot
- create mode 100644 arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1-hw4.imxcfg
  create mode 100644 arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
  create mode 100644 arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
  create mode 100644 arch/arm/boards/dr-mxxf1/lowlevel.c
@@ -727,7 +726,7 @@ index 0000000000..e744ce7ba8
 +}
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/default b/arch/arm/boards/dr-mxxf1/env/boot/default
 new file mode 100644
-index 0000000000..9d6e196454
+index 0000000000..f134950230
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/env/boot/default
 @@ -0,0 +1,15 @@
@@ -739,12 +738,12 @@ index 0000000000..9d6e196454
 +
 +if [ -e /mnt/mmc0.0/boot/zImage ]; then
 +    echo "Booting SD"
-+    boot -w 30 sdcard
++    boot -w 100 sdcard
 +fi
 +
 +if [ -e /mnt/mmc1.0/boot/zImage ]; then
 +    echo "Booting EMMC"
-+    boot -w 30 system0
++    boot -w 100 system0
 +fi
 diff --git a/arch/arm/boards/dr-mxxf1/env/boot/sdcard b/arch/arm/boards/dr-mxxf1/env/boot/sdcard
 new file mode 100644
@@ -820,160 +819,6 @@ index 0000000000..0aeab1ec9a
 +
 +echo "Init USB"
 +usb
-diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1-hw4.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1-hw4.imxcfg
-new file mode 100644
-index 0000000000..08b9195ae1
---- /dev/null
-+++ b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1-hw4.imxcfg
-@@ -0,0 +1,148 @@
-+# SPDX-License-Identifier: GPL-2.0-only
-+
-+loadaddr 0x10000000
-+soc imx6
-+ivtofs 0X400
-+
-+/* set the default clock gate to save power */
-+/*
-+wm 32 0x020c4068 0x00C03F3F
-+wm 32 0x020c406c 0x0030FC03
-+wm 32 0x020c4070 0x0FFFC000
-+wm 32 0x020c4074 0x3FF00000
-+wm 32 0x020c4078 0x00FFF300
-+wm 32 0x020c407c 0x0F0000C3
-+wm 32 0x020c4080 0x000003FF
-+*/
-+
-+/* enable AXI cache for VDOA/VPU/IPU */
-+wm 32 0x020e0010 0xF00000CF
-+/* set IPU AXI-id0 Qos=0xf(bypass) AXI-id1 Qos=0x7 */
-+wm 32 0x020e0018 0x007F007F
-+wm 32 0x020e001c 0x007F007F
-+
-+/*
-+ * Setup CCM_CCOSR register as follows:
-+ *
-+ * cko1_en  = 1	   --> CKO1 enabled
-+ * cko1_div = 111  --> divide by 8
-+ * cko1_sel = 1011 --> ahb_clk_root
-+ *
-+ * This sets CKO1 at ahb_clk_root/8 = 132/8 = 16.5 MHz
-+ */
-+/* wm 32 0x020c4060 0x000000fb */
-+
-+/* DDR */
-+wm 32 0x020e05a8 0x00000030
-+wm 32 0x020e05b0 0x00000030
-+wm 32 0x020e0524 0x00000030
-+wm 32 0x020e051c 0x00000030
-+
-+wm 32 0x020e0518 0x00000030
-+wm 32 0x020e050c 0x00000030
-+wm 32 0x020e05b8 0x00000030
-+wm 32 0x020e05c0 0x00000030
-+
-+wm 32 0x020e05ac 0x00020030
-+wm 32 0x020e05b4 0x00020030
-+wm 32 0x020e0528 0x00020030
-+wm 32 0x020e0520 0x00020030
-+
-+wm 32 0x020e0514 0x00020030
-+wm 32 0x020e0510 0x00020030
-+wm 32 0x020e05bc 0x00020030
-+wm 32 0x020e05c4 0x00020030
-+
-+wm 32 0x020e056c 0x00020030
-+wm 32 0x020e0578 0x00020030
-+wm 32 0x020e0588 0x00020030
-+wm 32 0x020e0594 0x00020030
-+
-+wm 32 0x020e057c 0x00020030
-+wm 32 0x020e0590 0x00003000
-+wm 32 0x020e0598 0x00003000
-+wm 32 0x020e058c 0x00000000
-+
-+wm 32 0x020e059c 0x00003030
-+wm 32 0x020e05a0 0x00003030
-+wm 32 0x020e0784 0x00000030
-+wm 32 0x020e0788 0x00000030
-+
-+wm 32 0x020e0794 0x00000030
-+wm 32 0x020e079c 0x00000030
-+wm 32 0x020e07a0 0x00000030
-+wm 32 0x020e07a4 0x00000030
-+
-+wm 32 0x020e07a8 0x00000030
-+wm 32 0x020e0748 0x00000030
-+wm 32 0x020e074c 0x00000030
-+wm 32 0x020e0750 0x00020000
-+
-+wm 32 0x020e0758 0x00000000
-+wm 32 0x020e0774 0x00020000
-+wm 32 0x020e078c 0x00000030
-+wm 32 0x020e0798 0x000C0000
-+
-+wm 32 0x021b081c 0x33333333
-+wm 32 0x021b0820 0x33333333
-+wm 32 0x021b0824 0x33333333
-+wm 32 0x021b0828 0x33333333
-+
-+wm 32 0x021b481c 0x33333333
-+wm 32 0x021b4820 0x33333333
-+wm 32 0x021b4824 0x33333333
-+wm 32 0x021b4828 0x33333333
-+
-+wm 32 0x021b0018 0x00091740
-+
-+wm 32 0x021b001c 0x00008000
-+wm 32 0x021b000c 0x555A7974
-+wm 32 0x021b0010 0xDB538F64
-+wm 32 0x021b0014 0x01FF00DB
-+wm 32 0x021b002c 0x000026D2
-+
-+wm 32 0x021b0030 0x005A1023
-+wm 32 0x021b0008 0x09444040
-+wm 32 0x021b0004 0x00025576
-+wm 32 0x021b0040 0x00000027
-+wm 32 0x021b0000 0x831A0000
-+
-+wm 32 0x021b001c 0x04088032
-+wm 32 0x021b001c 0x0408803A
-+wm 32 0x021b001c 0x00008033
-+wm 32 0x021b001c 0x0000803B
-+wm 32 0x021b001c 0x00428031
-+wm 32 0x021b001c 0x00428039
-+wm 32 0x021b001c 0x19308030
-+wm 32 0x021b001c 0x19308038
-+
-+wm 32 0x021b001c 0x04008040
-+wm 32 0x021b001c 0x04008048
-+wm 32 0x021b0800 0xA1380003
-+wm 32 0x021b4800 0xA1380003
-+wm 32 0x021b0020 0x00005800
-+wm 32 0x021b0818 0x00022227
-+wm 32 0x021b4818 0x00022227
-+
-+wm 32 0x021b083c 0x4212015F
-+wm 32 0x021b0840 0x015A015A
-+wm 32 0x021b483c 0x436F015F
-+wm 32 0x021b4840 0x015F0148
-+
-+wm 32 0x021b0848 0x3C303036
-+wm 32 0x021b4848 0x38383240
-+wm 32 0x021b0850 0x38383A38
-+wm 32 0x021b4850 0x4A364A44
-+
-+wm 32 0x021b080c 0x001F0024
-+wm 32 0x021b0810 0x002E0028
-+
-+wm 32 0x021b480c 0x00260038
-+wm 32 0x021b4810 0x00240034
-+
-+wm 32 0x021b08b8 0x00000800
-+wm 32 0x021b48b8 0x00000800
-+
-+wm 32 0x021b001c 0x00000000
-+wm 32 0x021b0404 0x00011006
-+
 diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
 new file mode 100644
 index 0000000000..b08982985c
@@ -1141,10 +986,10 @@ index 0000000000..0b37ab248f
 +ivtofs 0x400
 diff --git a/arch/arm/boards/dr-mxxf1/lowlevel.c b/arch/arm/boards/dr-mxxf1/lowlevel.c
 new file mode 100644
-index 0000000000..4fc444989b
+index 0000000000..01cc0805f5
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/lowlevel.c
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,57 @@
 +#include <common.h>
 +#include <linux/sizes.h>
 +#include <mach/generic.h>
@@ -1154,10 +999,10 @@ index 0000000000..4fc444989b
 +#include <asm/barebox-arm.h>
 +#include <mach/imx6-regs.h>
 +#include <io.h>
-+#include <mach/debug_ll.h>
 +#include <mach/esdctl.h>
 +#include <asm/cache.h>
 +#include <mach/iomux-mx6.h>
++#include <debug_ll.h>
 +
 +extern char __dtb_mxxf1_hw4_start[];
 +extern char __dtb_mxxf1_start[];
@@ -1171,7 +1016,7 @@ index 0000000000..4fc444989b
 +
 +	imx6_uart_setup(uart);
 +	pbl_set_putc(imx_uart_putc, uart);
-+	pr_debug("DR MXXF1\n");
++	putc_ll('>');
 +}
 +
 +
@@ -1182,7 +1027,8 @@ index 0000000000..4fc444989b
 +	void *fdt;
 +	imx6_cpu_lowlevel_init();
 +	imx6_ungate_all_peripherals();
-+	setup_uart();
++		if (IS_ENABLED(CONFIG_DEBUG_LL))
++			setup_uart();
 +	imx6_get_boot_source(&bootsrc, &instance);
 +	fdt = __dtb_mxxf1_hw4_start + get_runtime_offset();
 +	barebox_arm_entry(0x10000000, SZ_1G, fdt);
@@ -1195,7 +1041,8 @@ index 0000000000..4fc444989b
 +	void *fdt;
 +	imx6_cpu_lowlevel_init();
 +	imx6_ungate_all_peripherals();
-+	setup_uart();
++	if (IS_ENABLED(CONFIG_DEBUG_LL))
++		setup_uart();
 +	imx6_get_boot_source(&bootsrc, &instance);
 +	fdt = __dtb_mxxf1_start + get_runtime_offset();
 +	barebox_arm_entry(0x10000000, SZ_1G, fdt);
@@ -3001,7 +2848,7 @@ index 6b962dcf7e..460757b5d3 100644
  
  # ----------------------------------------------------------
 diff --git a/images/Makefile.imx b/images/Makefile.imx
-index 62549ab758..2231b75b0f 100644
+index 62549ab758..241308b3df 100644
 --- a/images/Makefile.imx
 +++ b/images/Makefile.imx
 @@ -350,6 +350,10 @@ $(call build_imx_habv4img, CONFIG_MACH_ADVANTECH_ROM_742X, start_advantech_imx6d
@@ -3010,7 +2857,7 @@ index 62549ab758..2231b75b0f 100644
  
 +# --------------------- DR boards -------------
 +$(call build_imx_habv4img, CONFIG_MACH_DR_MXXF1, start_dr_mxxf1, dr-mxxf1/flash-header-dr-mxxf1, mxxf1)
-+$(call build_imx_habv4img, CONFIG_MACH_DR_MXXF1, start_dr_mxxf1_hw4, dr-mxxf1/flash-header-dr-mxxf1-hw4, mxxf1-hw4)
++$(call build_imx_habv4img, CONFIG_MACH_DR_MXXF1, start_dr_mxxf1_hw4, dr-mxxf1/flash-header-dr-mxxf1, mxxf1-hw4)
 +
  # ----------------------- i.MX6ul / i.MX6ull based boards --------------
  $(call build_imx_habv4img, CONFIG_MACH_GRINN_LITEBOARD, start_imx6ul_liteboard_256mb, grinn-liteboard/flash-header-liteboard-256mb, grinn-liteboard-256mb)
