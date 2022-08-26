@@ -1,7 +1,7 @@
-From 7c78c402426938489ba317ae5db93ef7edd7ecc0 Mon Sep 17 00:00:00 2001
+From 088c7dd1ca2422a85fba51306120e927fba09d87 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 3 Aug 2022 17:50:43 +0200
-Subject: [PATCH 3/3] Add mxxf1 board
+Subject: [PATCH 3/4] Add mxxf1 board
 
 Note on DDR3 calibration:
 ddr stress tester 3.0 generates values that
@@ -19,7 +19,7 @@ make some boards fail.
  arch/arm/boards/dr-mxxf1/env/boot/usb         |   6 +
  arch/arm/boards/dr-mxxf1/env/init/greeting    |   7 +
  arch/arm/boards/dr-mxxf1/env/init/setup_boot  |   7 +
- .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 147 +++
+ .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 146 +++
  .../dr-mxxf1/flash-header-mxxf1-pbl.imxcfg    |   6 +
  arch/arm/boards/dr-mxxf1/lowlevel.c           |  57 ++
  arch/arm/boards/dr-mxxf1/mxxf1-gpio.h         |  39 +
@@ -33,7 +33,7 @@ make some boards fail.
  arch/arm/dts/mxxf1.dts                        |  60 ++
  arch/arm/mach-imx/Kconfig                     |   6 +
  images/Makefile.imx                           |   4 +
- 26 files changed, 2633 insertions(+)
+ 26 files changed, 2632 insertions(+)
  create mode 100644 arch/arm/boards/dr-mxxf1/CalibrationTest.txt
  create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
  create mode 100644 arch/arm/boards/dr-mxxf1/board.c
@@ -58,22 +58,22 @@ make some boards fail.
  create mode 100644 arch/arm/dts/mxxf1.dts
 
 diff --git a/arch/arm/boards/Makefile b/arch/arm/boards/Makefile
-index d303999614..55eefcfab7 100644
+index 3ccde26f1b..dfcfebe343 100644
 --- a/arch/arm/boards/Makefile
 +++ b/arch/arm/boards/Makefile
-@@ -192,3 +192,4 @@ obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
- obj-$(CONFIG_MACH_RK3568_EVB)			+= rockchip-rk3568-evb/
+@@ -193,3 +193,4 @@ obj-$(CONFIG_MACH_RK3568_EVB)			+= rockchip-rk3568-evb/
  obj-$(CONFIG_MACH_RK3568_BPI_R2PRO)			+= rockchip-rk3568-bpi-r2pro/
  obj-$(CONFIG_MACH_PINE64_QUARTZ64)		+= pine64-quartz64/
-+obj-$(CONFIG_MACH_DR_MXXF1)				+= dr-mxxf1/
+ obj-$(CONFIG_MACH_RADXA_ROCK3)			+= radxa-rock3/
++obj-$(CONFIG_MACH_DR_MXXF1)			+= dr-mxxf1/
 diff --git a/arch/arm/boards/dr-mxxf1/CalibrationTest.txt b/arch/arm/boards/dr-mxxf1/CalibrationTest.txt
 new file mode 100644
-index 0000000000..c2d3f977a5
+index 0000000000..4df0f138e3
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/CalibrationTest.txt
 @@ -0,0 +1,311 @@
-+Type 0 for 2GB; 1 for 1GB; 2 for 512MB; 3 for 256MB; 4 for 128MB; 5 for 64MB; 6 for 32MB  
-+For maximum supported density (4GB), we can only access up to 3.75GB.  Type 7 to select this 
++Type 0 for 2GB; 1 for 1GB; 2 for 512MB; 3 for 256MB; 4 for 128MB; 5 for 64MB; 6 for 32MB
++For maximum supported density (4GB), we can only access up to 3.75GB.  Type 7 to select this
 +  DDR density selected (MB): 1024
 +
 +
@@ -84,15 +84,15 @@ index 0000000000..c2d3f977a5
 +
 +Calibration will run at DDR frequency 528MHz. Type 'y' to continue.
 +If you want to run at other DDR frequency. Type 'n'
-+  Please enter the MR1 value on the initilization script 
-+  This will be re-programmed into MR1 after write leveling calibration 
-+  Enter as a 4-digit HEX value, example 0004, then hit enter 
-+0004DDR Freq: 528 MHz 
++  Please enter the MR1 value on the initilization script
++  This will be re-programmed into MR1 after write leveling calibration
++  Enter as a 4-digit HEX value, example 0004, then hit enter
++0004DDR Freq: 528 MHz
 +
 +ddr_mr1=0x00000004
 +Start write leveling calibration...
 +running Write level HW calibration
-+  MPWLHWERR register read out for factory diagnostics: 
++  MPWLHWERR register read out for factory diagnostics:
 +  MPWLHWERR PHY0 = 0x3c3c3e3c
 +  MPWLHWERR PHY1 = 0x3c7c3c7c
 +
@@ -114,9 +114,9 @@ index 0000000000..c2d3f977a5
 +
 +WARNING: write-leveling calibration value is greater than 1/8 CK.
 +	Per the reference manual, WALAT must be set to 1 in the register MDMISC(0x021B0018).
-+	This has been performed automatically. 
-+	However, in addition to updating the calibration values in your DDR initialization, 
-+	it is also REQUIRED change the value of MDMISC in their DDR initialization as follows: 
++	This has been performed automatically.
++	However, in addition to updating the calibration values in your DDR initialization,
++	it is also REQUIRED change the value of MDMISC in their DDR initialization as follows:
 +
 +    MMDC_MDMISC (0x021b0018) =  0x00091740
 +
@@ -207,49 +207,49 @@ index 0000000000..c2d3f977a5
 +. ABS_OFFSET=0x0000007C	result[1F]=0x00100000
 +
 +
-+BYTE 0: 
++BYTE 0:
 +	Start:		 HC=0x01 ABS=0x00
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x5F
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x01 ABS=0x5F
-+BYTE 1: 
++BYTE 1:
 +	Start:		 HC=0x01 ABS=0x64
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x02 ABS=0x12
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x02 ABS=0x12
-+BYTE 2: 
++BYTE 2:
 +	Start:		 HC=0x00 ABS=0x74
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x5A
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x01 ABS=0x5A
-+BYTE 3: 
++BYTE 3:
 +	Start:		 HC=0x00 ABS=0x74
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x5A
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x01 ABS=0x5A
-+BYTE 4: 
++BYTE 4:
 +	Start:		 HC=0x01 ABS=0x00
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x5F
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x01 ABS=0x5F
-+BYTE 5: 
++BYTE 5:
 +	Start:		 HC=0x03 ABS=0x2C
 +	End:		 HC=0x04 ABS=0x34
 +	Mean:		 HC=0x03 ABS=0x6F
 +	End-0.5*tCK:	 HC=0x03 ABS=0x34
 +	Final:		 HC=0x03 ABS=0x6F
-+BYTE 6: 
++BYTE 6:
 +	Start:		 HC=0x00 ABS=0x50
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x48
 +	End-0.5*tCK:	 HC=0x01 ABS=0x40
 +	Final:		 HC=0x01 ABS=0x48
-+BYTE 7: 
++BYTE 7:
 +	Start:		 HC=0x01 ABS=0x00
 +	End:		 HC=0x02 ABS=0x40
 +	Mean:		 HC=0x01 ABS=0x5F
@@ -260,11 +260,11 @@ index 0000000000..c2d3f977a5
 +
 +DQS calibration MMDC1 MPDGCTRL0 = 0x436F015F, MPDGCTRL1 = 0x015F0148
 +
-+Note: Array result[] holds the DRAM test result of each byte.  
-+      0: test pass.  1: test fail  
-+      4 bits respresent the result of 1 byte.    
-+      result 00000001:byte 0 fail. 
-+      result 00000011:byte 0, 1 fail. 
++Note: Array result[] holds the DRAM test result of each byte.
++      0: test pass.  1: test fail
++      4 bits respresent the result of 1 byte.
++      result 00000001:byte 0 fail.
++      result 00000011:byte 0, 1 fail.
 +
 +Starting Read calibration...
 +
@@ -359,7 +359,7 @@ index 0000000000..c2d3f977a5
 +MMDC0 MPWRDLCTL = 0x38383A38,MMDC1 MPWRDLCTL = 0x4A364A44
 +
 +
-+   MMDC registers updated from calibration 
++   MMDC registers updated from calibration
 +
 +   Write leveling calibration
 +   MMDC_MPWLDECTRL0 ch0 (0x021b080c) = 0x001F0024
@@ -821,10 +821,10 @@ index 0000000000..0aeab1ec9a
 +usb
 diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
 new file mode 100644
-index 0000000000..b08982985c
+index 0000000000..5d6f82fd6a
 --- /dev/null
 +++ b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,146 @@
 +# SPDX-License-Identifier: GPL-2.0-only
 +
 +loadaddr 0x10000000
@@ -971,7 +971,6 @@ index 0000000000..b08982985c
 +
 +wm 32 0x021b001c 0x00000000
 +wm 32 0x021b0404 0x00011006
-+
 diff --git a/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-mxxf1-pbl.imxcfg
 new file mode 100644
 index 0000000000..0b37ab248f
@@ -1750,10 +1749,10 @@ index 0000000000..71dc626497
 +CONFIG_FONT_8x8=y
 +CONFIG_FONT_8x16=y
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 46e5e67672..514c2358ff 100644
+index 0c7e43e226..42f60dd803 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -195,4 +195,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
+@@ -198,4 +198,5 @@ lwl-$(CONFIG_MACH_TQMLS1046A) += fsl-tqmls1046a-mbls10xxa.dtb.o
  lwl-$(CONFIG_MACH_ZEDBOARD) += zynq-zed.dtb.o
  lwl-$(CONFIG_MACH_MNT_REFORM) += imx8mq-mnt-reform2.dtb.o
  
@@ -2704,7 +2703,7 @@ index 0000000000..b074d976e9
 +};
 diff --git a/arch/arm/dts/mxxf1-hw4.dts b/arch/arm/dts/mxxf1-hw4.dts
 new file mode 100644
-index 0000000000..c93e024068
+index 0000000000..d9b04e8018
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1-hw4.dts
 @@ -0,0 +1,56 @@
@@ -2744,12 +2743,12 @@ index 0000000000..c93e024068
 +	   #address-cells = <1>;
 +       #size-cells = <0>;
 +	   miphy: ethernet-phy@1 {
-+	    	compatible = "ethernet-phy-ieee802.3-c22";
-+	    	reg = <0x1>;
-+	    	interrupt-parent = <&gpio1>;
-+	    	interrupts = <28 IRQ_TYPE_LEVEL_LOW>;
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0x1>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <28 IRQ_TYPE_LEVEL_LOW>;
 +
-+		   	txen-skew-ps = <0>;
++			txen-skew-ps = <0>;
 +			txc-skew-ps = <3000>;
 +			rxdv-skew-ps = <0>;
 +			rxc-skew-ps = <3000>;
@@ -2766,7 +2765,7 @@ index 0000000000..c93e024068
 +};
 diff --git a/arch/arm/dts/mxxf1.dts b/arch/arm/dts/mxxf1.dts
 new file mode 100644
-index 0000000000..c85cb76d7b
+index 0000000000..34b5d0cf00
 --- /dev/null
 +++ b/arch/arm/dts/mxxf1.dts
 @@ -0,0 +1,60 @@
@@ -2820,9 +2819,9 @@ index 0000000000..c85cb76d7b
 +		#size-cells = <0>;
 +		arphy: ethernet-phy@1 {
 +			compatible = "ethernet-phy-ieee802.3-c22";
-+		   	qca,clk-out-frequency = <125000000>;
-+		   	qca,clk-out-strength = <AR803X_STRENGTH_FULL>;
-+		   	qca,keep-pll-enabled;
++			qca,clk-out-frequency = <125000000>;
++			qca,clk-out-strength = <AR803X_STRENGTH_FULL>;
++			qca,keep-pll-enabled;
 +			at803x,eee-disabled;
 +			reg = <0x1>;
 +			interrupt-parent = <&gpio1>;
@@ -2831,7 +2830,7 @@ index 0000000000..c85cb76d7b
 +	};
 +};
 diff --git a/arch/arm/mach-imx/Kconfig b/arch/arm/mach-imx/Kconfig
-index 6b962dcf7e..460757b5d3 100644
+index 9ff549ac83..ecd3e01ec8 100644
 --- a/arch/arm/mach-imx/Kconfig
 +++ b/arch/arm/mach-imx/Kconfig
 @@ -634,6 +634,12 @@ config MACH_SKOV_IMX6

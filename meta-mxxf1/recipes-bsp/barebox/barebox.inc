@@ -48,9 +48,9 @@ EXTRA_OEMAKE = " \
 "
 
 do_configure() {
+	bbnote "Using version ${BAREBOX_BUILDSYSTEM_VERSION}"
 	if [ -e ${WORKDIR}/defconfig ]; then
 		cp ${WORKDIR}/defconfig ${B}/.config
-		echo "CONFIG_LOCALVERSION=${BAREBOX_VERSION_EXTENSION}" >> ${B}/.config
 	else
 		if [ -n "${BAREBOX_CONFIG}" ]; then
 			oe_runmake ${BAREBOX_CONFIG}
