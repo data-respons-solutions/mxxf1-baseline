@@ -1,0 +1,69 @@
+From ec7101663b6d11d52269e93596ccd5ce928f4388 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.com>
+Date: Tue, 30 Aug 2022 10:18:24 +0200
+Subject: [PATCH 5/5] MXXF1 DDR3 corrections
+
+Use exact controller register values from previous version
+---
+ arch/arm/boards/dr-mxxf1/env/init/greeting    |  2 +-
+ .../dr-mxxf1/flash-header-dr-mxxf1.imxcfg     | 28 +++++++++++--------
+ 2 files changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm/boards/dr-mxxf1/env/init/greeting b/arch/arm/boards/dr-mxxf1/env/init/greeting
+index 56c372be36..f142413865 100644
+--- a/arch/arm/boards/dr-mxxf1/env/init/greeting
++++ b/arch/arm/boards/dr-mxxf1/env/init/greeting
+@@ -2,7 +2,7 @@
+ fb0.enable=1
+ fbconsole0.active=oe
+ 
+-echo "DR MXXF1 Barebox: $global.version"
++echo "DR MXXF1 Barebox: $global.buildsystem.version"
+ echo "Board REV is $global.board.revision"
+ echo "Reset reason is $global.system.reset"
+ global.autoboot_abort_key="ctrl-c"
+diff --git a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
+index 5d6f82fd6a..471b676284 100644
+--- a/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
++++ b/arch/arm/boards/dr-mxxf1/flash-header-dr-mxxf1.imxcfg
+@@ -124,20 +124,26 @@ wm 32 0x021b0020 0x00005800
+ wm 32 0x021b0818 0x00022227
+ wm 32 0x021b4818 0x00022227
+ 
+-wm 32 0x021b083c 0x434B0350
+-wm 32 0x021b0840 0x034C0359
++/* Read DQS calibration */
++wm 32 0x021b083c 0x032C0338
++wm 32 0x021b0840 0x03280324
+ wm 32 0x021b483c 0x434B0350
+-wm 32 0x021b4840 0x03650348
+-wm 32 0x021b0848 0x4436383B
+-wm 32 0x021b4848 0x39393341
+-wm 32 0x021b0850 0x35373933
+-wm 32 0x021b4850 0x48254A36
++wm 32 0x021b4840 0x03280268
+ 
+-wm 32 0x021b080c 0x001F001F
+-wm 32 0x021b0810 0x001F001F
++/* Read calibration */
++wm 32 0x021b0848 0x3C343234
++wm 32 0x021b4848 0x3636303E
++
++/* Write calibraion */
++wm 32 0x021b0850 0x363A3C3C
++wm 32 0x021b4850 0x4630483C
++
++/* Write level calibration */
++wm 32 0x021b080c 0x00160018
++wm 32 0x021b0810 0x0025001A
++wm 32 0x021b480c 0x0017002B
++wm 32 0x021b4810 0x0017002F
+ 
+-wm 32 0x021b480c 0x00440044
+-wm 32 0x021b4810 0x00440044
+ 
+ wm 32 0x021b08b8 0x00000800
+ wm 32 0x021b48b8 0x00000800
+-- 
+2.34.1
+

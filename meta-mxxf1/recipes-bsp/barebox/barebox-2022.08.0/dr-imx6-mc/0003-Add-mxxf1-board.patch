@@ -1,7 +1,7 @@
 From 088c7dd1ca2422a85fba51306120e927fba09d87 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 3 Aug 2022 17:50:43 +0200
-Subject: [PATCH 3/4] Add mxxf1 board
+Subject: [PATCH 3/5] Add mxxf1 board
 
 Note on DDR3 calibration:
 ddr stress tester 3.0 generates values that
