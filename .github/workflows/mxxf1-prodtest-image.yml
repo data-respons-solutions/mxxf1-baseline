@@ -34,8 +34,10 @@ jobs:
       run: |
         mkdir -p $HOME/.ssh
         chmod 0700 $HOME/.ssh
-        echo "IdentityFile /work/keys/mxxf1-oe-system" >> $HOME/.ssh/config
-        echo "IdentityFile /work/keys/mxxf1-oem-system" >> $HOME/.ssh/config
+        echo "${{ secrets.ID_DR_BUILD }}" > $HOME/.ssh/id_rsa
+        chmod 0600 $HOME/.ssh/id_rsa
+        echo "Host github.com" > $HOME/.ssh/config
+        echo "IdentityFile ~/.ssh/id_rsa" >> $HOME/.ssh/config
         echo " StrictHostKeyChecking no" >> $HOME/.ssh/config
 
     - name: GitCheckout
@@ -105,5 +107,5 @@ jobs:
     - name: 'Clean'
       if: always()
       run: |
-        rm -f $HOME/.ssh/config
+        rm -rf $HOME/.ssh
         rm -rf $SRCDIR/build/conf
