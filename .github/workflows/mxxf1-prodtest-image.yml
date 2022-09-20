@@ -53,6 +53,7 @@ jobs:
       run: |
         echo "Build type is ${{github.event.inputs.buildtype}}"
         echo "BUILD_TYPE=${{github.event.inputs.buildtype}}" >> $GITHUB_ENV
+        echo "BUCKET=mxxf1-${{github.event.inputs.buildtype}}" >> $GITHUB_ENV
 
     - name: GitEventRelease
       if: github.event_name != 'workflow_dispatch' && ${{ startsWith(github.event.head_commit.message, 'Release') }}
