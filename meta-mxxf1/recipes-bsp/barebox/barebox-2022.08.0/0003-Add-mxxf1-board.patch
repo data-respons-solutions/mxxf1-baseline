@@ -1,4 +1,4 @@
-From 088c7dd1ca2422a85fba51306120e927fba09d87 Mon Sep 17 00:00:00 2001
+From 16e26b78030fe38a2e5d3378f32d25e80fd1b27e Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 3 Aug 2022 17:50:43 +0200
 Subject: [PATCH 3/5] Add mxxf1 board
@@ -6,6 +6,8 @@ Subject: [PATCH 3/5] Add mxxf1 board
 Note on DDR3 calibration:
 ddr stress tester 3.0 generates values that
 make some boards fail.
+
+Include PCIe DW driver for reset of pcie bus
 ---
  arch/arm/boards/Makefile                      |   1 +
  arch/arm/boards/dr-mxxf1/CalibrationTest.txt  | 311 ++++++
@@ -26,14 +28,14 @@ make some boards fail.
  arch/arm/boards/dr-mxxf1/param.c              | 249 +++++
  arch/arm/boards/dr-mxxf1/param.h              |  32 +
  arch/arm/boards/dr-mxxf1/vpd-eeprom.c         | 171 ++++
- arch/arm/configs/dr-mxxf1_defconfig           | 181 ++++
+ arch/arm/configs/dr-mxxf1_defconfig           | 182 ++++
  arch/arm/dts/Makefile                         |   1 +
  arch/arm/dts/mxxf1-common.dtsi                | 937 ++++++++++++++++++
  arch/arm/dts/mxxf1-hw4.dts                    |  56 ++
  arch/arm/dts/mxxf1.dts                        |  60 ++
  arch/arm/mach-imx/Kconfig                     |   6 +
  images/Makefile.imx                           |   4 +
- 26 files changed, 2632 insertions(+)
+ 26 files changed, 2633 insertions(+)
  create mode 100644 arch/arm/boards/dr-mxxf1/CalibrationTest.txt
  create mode 100644 arch/arm/boards/dr-mxxf1/Makefile
  create mode 100644 arch/arm/boards/dr-mxxf1/board.c
@@ -1563,10 +1565,10 @@ index 0000000000..eb54c4ca51
 +	BAREBOX_CMD_DESC("Show VPD data") BAREBOX_CMD_END
 diff --git a/arch/arm/configs/dr-mxxf1_defconfig b/arch/arm/configs/dr-mxxf1_defconfig
 new file mode 100644
-index 0000000000..71dc626497
+index 0000000000..24095fbc47
 --- /dev/null
 +++ b/arch/arm/configs/dr-mxxf1_defconfig
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,182 @@
 +CONFIG_ARCH_IMX=y
 +CONFIG_IMX_MULTI_BOARDS=y
 +CONFIG_MACH_DR_MXXF1=y
@@ -1748,6 +1750,7 @@ index 0000000000..71dc626497
 +CONFIG_FONTS=y
 +CONFIG_FONT_8x8=y
 +CONFIG_FONT_8x16=y
++CONFIG_PCIE_DW=y
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
 index 0c7e43e226..42f60dd803 100644
 --- a/arch/arm/dts/Makefile

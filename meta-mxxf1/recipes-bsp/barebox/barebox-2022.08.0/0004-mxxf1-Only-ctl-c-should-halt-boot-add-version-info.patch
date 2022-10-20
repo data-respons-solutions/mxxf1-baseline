@@ -1,4 +1,4 @@
-From 08a0a4701143a1001c90501ce8d4ebb3c1c56900 Mon Sep 17 00:00:00 2001
+From bf0c130b28437371d107ad228a8b6e4a82461e28 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Fri, 26 Aug 2022 10:31:51 +0200
 Subject: [PATCH 4/5] mxxf1: Only ctl-c should halt boot, add version info
