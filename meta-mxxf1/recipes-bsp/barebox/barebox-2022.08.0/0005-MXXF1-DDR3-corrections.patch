@@ -1,7 +1,7 @@
 From 6be7f39b2fea017ab4dd4aa7fdc7cd9ad796399e Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.com>
 Date: Tue, 30 Aug 2022 10:18:24 +0200
-Subject: [PATCH 5/5] MXXF1 DDR3 corrections
+Subject: [PATCH 5/6] MXXF1 DDR3 corrections
 
 Use exact controller register values from previous version
 ---

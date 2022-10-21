@@ -1,7 +1,7 @@
 From 5497069a85a158e4c8616649cd0e67ce63e9d51e Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 3 Aug 2022 17:48:10 +0200
-Subject: [PATCH 2/5] IPUV3: Fix LVDS bridge
+Subject: [PATCH 2/6] IPUV3: Fix LVDS bridge
 
 Add missing configuration
 ---

@@ -1,0 +1,27 @@
+From ee53065b92eb796dcbc4044d849834a65963e898 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Fri, 21 Oct 2022 09:55:02 +0200
+Subject: [PATCH 6/6] Clockbug: Correct PCIe reset timing
+
+System clock timing runs at 2x speed. PCIe reset becomes to short.
+As a temporary fix adjust the reset time for PCIe
+---
+ drivers/pci/pci-imx6.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/pci/pci-imx6.c b/drivers/pci/pci-imx6.c
+index e7ea0ebb94..b603337367 100644
+--- a/drivers/pci/pci-imx6.c
++++ b/drivers/pci/pci-imx6.c
+@@ -401,7 +401,7 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
+ 	/* Some boards don't have PCIe reset GPIO. */
+ 	if (gpio_is_valid(imx6_pcie->reset_gpio)) {
+ 		gpio_set_value(imx6_pcie->reset_gpio, 0);
+-		mdelay(100);
++		mdelay(3 * 100);
+ 		gpio_set_value(imx6_pcie->reset_gpio, 1);
+ 	}
+ 
+-- 
+2.34.1
+
