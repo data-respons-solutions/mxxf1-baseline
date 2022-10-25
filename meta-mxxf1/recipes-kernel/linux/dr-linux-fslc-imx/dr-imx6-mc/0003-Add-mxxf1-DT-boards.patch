@@ -1,14 +1,14 @@
-From 7ba7466bc12141374b0c31af55fbd6f89abe2e9a Mon Sep 17 00:00:00 2001
+From ba82ff4fde94cc7bd8a28672c14c54e6b0fdbcc7 Mon Sep 17 00:00:00 2001
 From: Hans Christian Lonstad <hcl@datarespons.no>
 Date: Wed, 22 Jun 2022 14:43:14 +0200
 Subject: [PATCH 3/3] Add mxxf1 DT boards
 
 ---
- arch/arm/boot/dts/mxxf1-common.dtsi | 850 ++++++++++++++++++++++++++++
+ arch/arm/boot/dts/mxxf1-common.dtsi | 851 ++++++++++++++++++++++++++++
  arch/arm/boot/dts/mxxf1-hw4.dts     |  70 +++
  arch/arm/boot/dts/mxxf1-tsup.dts    |  68 +++
  arch/arm/boot/dts/mxxf1.dts         |  74 +++
- 4 files changed, 1062 insertions(+)
+ 4 files changed, 1063 insertions(+)
  create mode 100644 arch/arm/boot/dts/mxxf1-common.dtsi
  create mode 100644 arch/arm/boot/dts/mxxf1-hw4.dts
  create mode 100644 arch/arm/boot/dts/mxxf1-tsup.dts
@@ -16,10 +16,10 @@ Subject: [PATCH 3/3] Add mxxf1 DT boards
 
 diff --git a/arch/arm/boot/dts/mxxf1-common.dtsi b/arch/arm/boot/dts/mxxf1-common.dtsi
 new file mode 100644
-index 000000000000..007806501cd7
+index 000000000000..381339fe0e59
 --- /dev/null
 +++ b/arch/arm/boot/dts/mxxf1-common.dtsi
-@@ -0,0 +1,850 @@
+@@ -0,0 +1,851 @@
 +/*
 + * Copyright DATA RESPONS AS
 + *
@@ -763,7 +763,8 @@ index 000000000000..007806501cd7
 +	pinctrl-0 = <&pinctrl_pcie>;
 +	reset-gpio = <&gpio7 12 GPIO_ACTIVE_LOW>;
 +	status = "okay";
-+	vph-supply = <&vgen3_reg>;
++	l1ss-disabled;
++	epdev_on-supply = <&sw2_reg>;
 +};
 +
 +&uart1 {
