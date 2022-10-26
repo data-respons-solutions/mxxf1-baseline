@@ -1,0 +1,39 @@
+From c75cab687c09096c6b8a81cb7a23d662b40460e1 Mon Sep 17 00:00:00 2001
+From: Hans Christian Lonstad <hcl@datarespons.no>
+Date: Wed, 26 Oct 2022 09:12:29 +0200
+Subject: [PATCH 6/6] mxxf1: Enable PCIe
+
+Performs a 100ms reset and enumerates the i210 device
+---
+ arch/arm/configs/dr-mxxf1_defconfig | 2 +-
+ arch/arm/dts/mxxf1-common.dtsi      | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/configs/dr-mxxf1_defconfig b/arch/arm/configs/dr-mxxf1_defconfig
+index 24095fbc47..8e35872228 100644
+--- a/arch/arm/configs/dr-mxxf1_defconfig
++++ b/arch/arm/configs/dr-mxxf1_defconfig
+@@ -179,4 +179,4 @@ CONFIG_IMX_OCOTP=y
+ CONFIG_FONTS=y
+ CONFIG_FONT_8x8=y
+ CONFIG_FONT_8x16=y
+-CONFIG_PCIE_DW=y
++CONFIG_PCI_IMX6=y
+diff --git a/arch/arm/dts/mxxf1-common.dtsi b/arch/arm/dts/mxxf1-common.dtsi
+index b074d976e9..eead71aa75 100644
+--- a/arch/arm/dts/mxxf1-common.dtsi
++++ b/arch/arm/dts/mxxf1-common.dtsi
+@@ -594,8 +594,8 @@
+ 	pcie {
+ 		pinctrl_pcie: pciegrp {
+ 			fsl,pins = <
+-				MX6QDL_PAD_GPIO_17__GPIO7_IO12	0x1b0b0
+-				MX6QDL_PAD_EIM_D23__GPIO3_IO23  0x1b0b0
++				MX6QDL_PAD_GPIO_17__GPIO7_IO12	0x060b0
++				MX6QDL_PAD_EIM_D23__GPIO3_IO23  0x0b0b0
+ 			>;
+ 		};
+ 	};
+-- 
+2.34.1
+
